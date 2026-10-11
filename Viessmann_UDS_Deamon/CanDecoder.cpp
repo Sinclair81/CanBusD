@@ -5,14 +5,37 @@ static float convertBytesToFloat(const uint8_t* bytes) {
     int16_t raw16 = (int16_t)(bytes[0] | (bytes[1] << 8));
     return raw16 / 10.0f;
 }
-static int16 convertBytesToInt16(const uint8_t* bytes) {
-    return (int16_t)(bytes[0] | (bytes[1] << 8));
+static float convertBytesToFloat32(const uint8_t* bytes) {
+    union FloatByteConverter {
+        float f;
+        uint8_t b[4];
+    };
+    FloatByteConverter converter;
+    converter.b[0] = bytes[0];
+    converter.b[1] = bytes[1];
+    converter.b[2] = bytes[2];
+    converter.b[3] = bytes[3];
+    return converter.f;
 }
-static int32 convertBytesToInt32(const uint8_t* bytes) {
-    return (int32_t)(bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24));
+static int16_t convertBytesToInt16(const uint8_t* bytes) {
+    return (int16_t)((uint16_t)bytes[0] | 
+                     ((uint16_t)bytes[1] << 8));
 }
-static int64 convertBytesToInt64(const uint8_t* bytes) {
-    return (int64_t)(bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24) | (bytes[4] << 32) | (bytes[5] << 40) | (bytes[6] << 48) | (bytes[7] << 56));
+static int32_t convertBytesToInt32(const uint8_t* bytes) {
+    return (int32_t)((uint32_t)bytes[0] | 
+                     ((uint32_t)bytes[1] << 8) | 
+                     ((uint32_t)bytes[2] << 16) | 
+                     ((uint32_t)bytes[3] << 24));
+}
+static int64_t convertBytesToInt64(const uint8_t* bytes) {
+    return (int64_t)((uint64_t)bytes[0] | 
+                     ((uint64_t)bytes[1] << 8) | 
+                     ((uint64_t)bytes[2] << 16) | 
+                     ((uint64_t)bytes[3] << 24) | 
+                     ((uint64_t)bytes[4] << 32) | 
+                     ((uint64_t)bytes[5] << 40) | 
+                     ((uint64_t)bytes[6] << 48) | 
+                     ((uint64_t)bytes[7] << 56));
 }
 
 // ======================================== Class: SingleTemp ========================================
@@ -469,4 +492,184 @@ String AdditionalElectricHeater::getFormattedString() const {
     return output;
 }
 
+// ======================================== Class: FlowSensor ========================================
 
+FlowSensor::FlowSensor(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void FlowSensor::parse(const uint8_t* busBytes) {
+    _rawBytesActual[0]      = busBytes[0];
+    _rawBytesActual[1]      = busBytes[1];
+    _rawBytesTemperature[0] = busBytes[2];
+    _rawBytesTemperature[1] = busBytes[3];
+    _unknownByte            = busBytes[4];
+}
+
+float FlowSensor::getActual() const {
+    return convertBytesToFloat(_rawBytesActual);
+}
+
+float FlowSensor::getTemperature() const {
+    return convertBytesToFloat(_rawBytesTemperature);
+}
+
+uint8_t FlowSensor::getUnknown() const {
+    return _unknownByte;
+}
+
+String FlowSensor::getFormattedString() const {
+    String output = "";
+    output += "Actual:"      + String(getActual(), 0)      + "l/h | ";
+    output += "Temperature:" + String(getTemperature(), 1) + "°C | ";
+    output += "Unknown:"     + String(getUnknown());
+    return output;
+}
+
+// ======================================== Class: Power ========================================
+
+Power::Power(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void Power::parse(const uint8_t* busBytes) {
+    _rawBytesPower[0] = busBytes[0];
+    _rawBytesPower[1] = busBytes[1];
+    _rawBytesPower[2] = busBytes[2];
+    _rawBytesPower[3] = busBytes[3];
+}
+
+uint32_t Power::getPower() const {
+    return convertBytesToInt32(_rawBytesPower);
+}
+
+String Power::getFormattedString() const {
+    String output = "";
+    output += "Power:" + String(getPower()) + "W";
+    return output;
+}
+
+// ======================================== Class: Utf8String ========================================
+
+Utf8String::Utf8String(uint32_t did, const String& name) 
+    : _did(did), _name(name), _currentBytes(0) {
+    _buffer[0] = '\0';
+}
+
+size_t Utf8String::getUtf8Length(const char* str, size_t incomingLen) const {
+    size_t allowed = (incomingLen < 64) ? incomingLen : 64;
+    // If we land exactly on a UTF-8 continuation byte (bit pattern 10xxxxxx),
+    // we move backwards until the character is complete again.
+    while (allowed > 0 && ((str[allowed] & 0xC0) == 0x80)) {
+        allowed--;
+    }
+    return allowed;
+}
+
+void Utf8String::parse(const uint8_t* busBytes, size_t length) {
+    if (!busBytes || length == 0) {
+        _buffer[0] = '\0';
+        _currentBytes = 0;
+        return;
+    }
+    _currentBytes = getUtf8Length((const char*)busBytes, length);
+    memcpy(_buffer, busBytes, _currentBytes);
+    _buffer[_currentBytes] = '\0';
+}
+
+const char* Utf8String::getString() const {
+    return _buffer;
+}
+
+uint32_t Utf8String::getDid() const {
+    return _did;
+}
+
+String Utf8String::getName() const {
+    return _name;
+}
+
+size_t Utf8String::getByteLength() const {
+    return _currentBytes;
+}
+
+// ======================================== Class: CanInt8 ========================================
+
+CanInt8::CanInt8(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void CanInt8::parse(const uint8_t* busBytes) {
+    _byte = busBytes[0];
+}
+
+int8_t CanInt8::getInt() const {
+    return (int8_t)_rawBytes;
+}
+
+String CanInt8::getFormattedString() const {
+    String output = "";
+    output += "Int8:" + String(getInt()) + " [%, ENUM, dBm, min, cnt, mbar]";
+    return output;
+}
+
+// ======================================== Class: CanInt16 ========================================
+
+CanInt16::CanInt16(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void CanInt16::parse(const uint8_t* busBytes) {
+    _rawBytes[0] = busBytes[0];
+    _rawBytes[1] = busBytes[1];
+}
+
+int16_t CanInt16::getInt() const {
+    return convertBytesToInt16(_rawBytes);
+}
+
+String CanInt16::getFormattedString() const {
+    String output = "";
+    output += "Int16:" + String(getInt()) + " [°C, bar, hPas, l/h, h, rps, rpm, µA, mA, Wh, W, kW, VA, m3]";
+    return output;
+}
+
+// ======================================== Class: CanInt32 ========================================
+
+CanInt32::CanInt32(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void CanInt32::parse(const uint8_t* busBytes) {
+    _rawBytes[0] = busBytes[0];
+    _rawBytes[1] = busBytes[1];
+    _rawBytes[2] = busBytes[2];
+    _rawBytes[3] = busBytes[3];
+}
+
+int32_t CanInt32::getInt() const {
+    return convertBytesToInt32(_rawBytes);
+}
+
+String CanInt32::getFormattedString() const {
+    String output = "";
+    output += "Int32:" + String(getInt()) + " [W, kWh, V, A]";
+    return output;
+}
+
+// ======================================== Class: CanFloat32 ========================================
+
+CanFloat32::CanFloat32(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void CanFloat32::parse(const uint8_t* busBytes) {
+    _rawBytes[0] = busBytes[0];
+    _rawBytes[1] = busBytes[1];
+    _rawBytes[2] = busBytes[2];
+    _rawBytes[3] = busBytes[3];
+}
+
+float CanFloat32::getFloat() const {
+    return convertBytesToFloat32(_rawBytes);
+}
+
+String CanFloat32::getFormattedString() const {
+    String output = "";
+    output += "Float32:" + String(getFloat(), 2) + " [Ah, %]";
+    return output;
+}

@@ -269,7 +269,122 @@ public:
     String getFormattedString() const;
 };
 
+// ======================================== Class: FlowSensor ========================================
+class FlowSensor {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesActual[2]      = {0};
+    uint8_t _rawBytesTemperature[2] = {0};
+    uint8_t _unknownByte = 0;
 
+public:
+    FlowSensor(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    float getActual() const;
+    float getTemperature() const;
+    uint8_t getUnknown() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
 
+// ======================================== Class: Power ========================================
+class Power {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesPower[4] = {0};
+
+public:
+    Power(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    uint32_t getPower() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: Utf8String ========================================
+class Utf8String {
+private:
+    uint32_t _did;
+    String _name;
+    char _buffer[65]; // 64 Bytes + 1 Byte '\0'
+    size_t _currentBytes;
+    size_t getUtf8Length(const char* str, size_t incomingLen) const;
+
+public:
+    Utf8String(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes, size_t length);
+    const char* getString() const;
+    uint32_t getDid() const;
+    String getName() const;
+    size_t getByteLength() const;
+};
+
+// ======================================== Class: CanInt8 ========================================
+class CanInt8 {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _byte = 0;
+
+public:
+    CanInt8(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    int8_t getInt() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: CanInt16 ========================================
+class CanInt16 {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytes[2] = {0};
+
+public:
+    CanInt16(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    int16_t getInt() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: CanInt32 ========================================
+class CanInt32 {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytes[4] = {0};
+
+public:
+    CanInt32(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    int32_t getInt() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: CanFloat32 ========================================
+class CanFloat32 {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytes[4] = {0};
+
+public:
+    CanFloat32(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    float getFloat() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
 
 #endif // CAN_DECODER_H
