@@ -277,7 +277,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                     </div>
                     <div class="form-group">
                         <label for="send_payload">Send 8 bytes (HEX, e.g. 03 22 01 12 00 00 00 00) to CAN ID 0x680 (optional):</label>
-                        <input type="text" id="send_payload" placeholder="z.B. 03 22 01 12 00 00 00 00">
+                        <input type="text" id="send_payload" placeholder="e.g. 03 22 01 12 00 00 00 00">
                     </div>
                     <div class="button-group">
                         <button class="btn" onclick="sendCommand()">🚀 Send command</button>
@@ -333,7 +333,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 union FloatByteConverter {
     float f;
     uint8_t b[4];
-  };
+};
 
 void processDecoding() {
     if (decodeMode == 0) { decodedValueStr = "--- (Off)"; return; }
@@ -416,10 +416,10 @@ void processDecoding() {
     } else if (decodeMode == 9) { // E-cartridge statistics
         if (payloadLen == 11) {
             int64_t v1 = ((int64_t)payloadBytes[2] << 16) | ((int64_t)payloadBytes[1] << 8) | payloadBytes[0];
-            int16_t v2 = ((int16_t)payloadBytes[7] << 8) | payloadBytes[6];
-            int16_t v3 = ((int16_t)payloadBytes[9] << 8) | payloadBytes[8];
-            int16_t v4 = ((int16_t)payloadBytes[11] << 8) | payloadBytes[10];
-            int16_t v5 = ((int16_t)payloadBytes[13] << 8) | payloadBytes[12];
+            int16_t v2 = ((int16_t)payloadBytes[4] << 8) | payloadBytes[3];
+            int16_t v3 = ((int16_t)payloadBytes[6] << 8) | payloadBytes[5];
+            int16_t v4 = ((int16_t)payloadBytes[8] << 8) | payloadBytes[7];
+            int16_t v5 = ((int16_t)payloadBytes[10] << 8) | payloadBytes[9];
             String s1 = String(v1);
             String s2 = String(v2);
             String s3 = String(v3);
@@ -439,7 +439,7 @@ void processDecoding() {
         } else { decodedValueStr = "Error: Payload too short!"; }
     } else if (decodeMode == 11) { // Power
         if (payloadLen == 4) {
-            int64_t v1 = ((int64_t)payloadBytes[3] << 16) | ((int64_t)payloadBytes[2] << 16) | ((int64_t)payloadBytes[1] << 8) | payloadBytes[0];
+            int64_t v1 = ((int64_t)payloadBytes[3] << 24) | ((int64_t)payloadBytes[2] << 16) | ((int64_t)payloadBytes[1] << 8) | payloadBytes[0];
             String s1 = String(v1);
             decodedValueStr = "Actual:" + s1 + "W";
         } else { decodedValueStr = "Error: Payload too short!"; }
@@ -564,7 +564,8 @@ void sendFlowControl() {
 void setup() {
     WiFi.mode(WIFI_STA); WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) { delay(500); }
-    logToWeb("Wi-Fi active! IP: " + WiFi.localIP().toString());
+    logToWeb("Wi-Fi active!");
+    // logToWeb("Wi-Fi active! IP: " + WiFi.localIP().toString());
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_PIN, RX_PIN, TWAI_MODE_NORMAL);
     twai_timing_config_t t_config = TWAI_TIMING_CONFIG_250KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
@@ -583,7 +584,7 @@ void setup() {
             if (pStr == "") { tx_msg.data[0] = 0x03; tx_msg.data[1] = 0x22; tx_msg.data[2] = (uint8_t)(did >> 8); tx_msg.data[3] = (uint8_t)(did & 0xFF); for(int i = 4; i < 8; i++) tx_msg.data[i] = 0x00; }
             else { uint8_t pBytes[8] = {0}; hexStringToBytes(pStr, pBytes, 8); did = ((uint16_t)pBytes[2] << 8) | pBytes[3]; for(int i = 0; i < 8; i++) tx_msg.data[i] = pBytes[i]; }
             tx_msg.data_length_code = 8; String rTx = ""; for (int i = 0; i < 8; i++) { char bB[4]; sprintf(bB, "%02X ", tx_msg.data[i]); rTx += String(bB); }
-            logToWeb("-> Roh-Frame: " + rTx);
+            logToWeb("-> Raw frame: " + rTx);
             if (twai_transmit(&tx_msg, pdMS_TO_TICKS(100)) == ESP_OK) { logToWeb(">> DID: " + String(did, DEC) + " (0x" + decToHex(String(did), 4) + ")"); } else { logToWeb("Sende-Fehler!"); }
         }
         request->send(200, "text/plain", "OK");
