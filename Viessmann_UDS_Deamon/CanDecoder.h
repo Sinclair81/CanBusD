@@ -206,7 +206,7 @@ class MixerCurve {
 private:
     uint32_t _did;
     String _name;
-    uint8_t gradientByte = 0;
+    uint8_t _gradientByte = 0;
     uint8_t _levelByte = 0;
     uint8_t _rawBytesBasePoint[2] = {0};
 

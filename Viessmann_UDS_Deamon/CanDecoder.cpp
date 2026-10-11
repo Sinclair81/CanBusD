@@ -601,7 +601,7 @@ void CanInt8::parse(const uint8_t* busBytes) {
 }
 
 int8_t CanInt8::getInt() const {
-    return (int8_t)_rawBytes;
+    return (int8_t)_byte;
 }
 
 String CanInt8::getFormattedString() const {
