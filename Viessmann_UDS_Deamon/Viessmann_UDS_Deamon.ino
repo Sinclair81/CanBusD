@@ -1,6 +1,6 @@
 
 /*************************************************************************************************************************
- *   Viessmann UDS Commander @ Sinclari81 2026                                                                           *
+ *   Viessmann UDS Deamon @ Sinclari81 2026                                                                           *
  *************************************************************************************************************************
  * 
  * 
@@ -33,7 +33,7 @@
 #include <ESPAsyncWebServer.h> 
 #include <ElegantOTA.h>
 #include "driver/twai.h"
-#include "known_dids.h"
+#include "CanDecoder.h"
 #include "secrets.h"
 
 // Wi-Fi access data - Please adjust in secrets.h
@@ -45,6 +45,17 @@ const char* password = SECRET_PASSWORD;
 #define RX_PIN GPIO_NUM_16
 #define CAN_REQUEST_ID  0x680
 #define CAN_RESPONSE_ID 0x690
+
+// Neue Variabelen zum abfragen über den CanBus
+Utf8String          identification(  377, "ViessmannIdentificationNumber");
+SingleTemp          hotWaterSetpoint(396, "DomesticHotWaterTemperatureSetpoint");
+MultiTempWithStatus outsideSensor(   274, "OutsideTemperatureSensor");
+Pump                heatingPump(     381, "CentralHeatingPump");
+
+
+
+
+// Ab hier alter Code zum ändern!
 
 // Global variables for the diagnostic interface
 String lastRxDidHex = "---";
