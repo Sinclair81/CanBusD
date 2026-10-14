@@ -29,12 +29,15 @@
  */
 
 #include <WiFi.h>
+#include <esp_task_wdt.h>
 #include <AsyncTCP.h>       
 #include <ESPAsyncWebServer.h> 
 #include <ElegantOTA.h>
 #include "driver/twai.h"
 #include "CanDecoder.h"
 #include "secrets.h"
+
+#define WATCHDOG_TIMEOUT_SECONDS 10
 
 // Wi-Fi access data - Adjust in secrets.h
 const char* ssid = SECRET_SSID;
@@ -47,6 +50,7 @@ const char* password = SECRET_PASSWORD;
 #define CAN_RESPONSE_ID 0x690
 
 // Registrierte Variablen zur zyklischen Abfrage
+
 Utf8String          identification(  377, "ViessmannIdentificationNumber");
 SingleTemp          hotWaterSetpoint(396, "DomesticHotWaterTemperatureSetpoint");
 MultiTempWithStatus outsideSensor(   274, "OutsideTemperatureSensor");
@@ -76,15 +80,15 @@ const char index_html[] PROGMEM = R"rawliteral(
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
     <style>
         body { font-family: Arial, sans-serif; background: #f4f4f9; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 900px; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .container { max-width: 90vw; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         h1 { color: #cc0000; margin-top: 0; margin-bottom: 5px; font-size: 1.8rem; }
         p { color: #666; margin-bottom: 25px; font-size: 0.95rem; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #cc0000; color: white; font-weight: bold; font-size: 0.95rem; }
         tr:hover { background-color: #f9f9f9; }
-        td:first-child { font-family: monospace; font-weight: bold; color: #555; width: 80px; }
-        td:nth-child(2) { font-weight: 600; color: #222; }
+        td:first-child { font-family: monospace; font-weight: bold; color: #555; font-size: 1.05rem; }
+        td:nth-child(2) { font-family: monospace;  font-weight: bold; color: #222; font-size: 1.05rem; }
         .val { font-family: monospace; font-weight: bold; color: #008800; font-size: 1.05rem; }
         .btn-ota { display: inline-block; margin-top: 20px; padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 0.9rem; float: right; }
         .btn-ota:hover { background: #004499; }
@@ -113,7 +117,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                 <tr>
                     <th>DID</th>
                     <th>Name</th>
-                    <th>Aktueller Wert (getFormattedString)</th>
+                    <th>Aktueller Wert</th>
                 </tr>
             </thead>
             <tbody>
@@ -127,6 +131,16 @@ const char index_html[] PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
+
+void setupWatchdog() {
+    esp_task_wdt_config_t wdt_config = {
+        .timeout_ms = WATCHDOG_TIMEOUT_SECONDS * 1000,
+        .idle_core_mask = (1 << 0) | (1 << 1),
+        .trigger_panic = true
+    };
+    esp_task_wdt_init(&wdt_config);
+    esp_task_wdt_add(NULL); 
+}
 
 // Sendet eine UDS-Abfrage für eine bestimmte DID an den CAN-Bus
 void sendUdsRequest(uint16_t did) {
@@ -302,10 +316,13 @@ void setup() {
     });
 
     ElegantOTA.begin(&server); 
-    server.begin(); 
+    server.begin();
+
+    setupWatchdog();
 }
 
 void loop() {
+    esp_task_wdt_reset();
     ElegantOTA.loop();
     checkForResponse();  // Läuft jetzt durchgehend mit maximaler Geschwindigkeit
     handleDaemonTimer(); // Schaltet ohne Delays die Abfragen sequenziell durch

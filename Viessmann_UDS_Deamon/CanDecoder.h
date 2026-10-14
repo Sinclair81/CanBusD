@@ -42,20 +42,90 @@ class MultiTempWithStatus {
 private:
     uint32_t _did;
     String _name;
-    uint8_t _rawBytesTemp1[2] = {0};
-    uint8_t _rawBytesTemp2[2] = {0};
-    uint8_t _rawBytesTemp3[2] = {0};
-    uint8_t _rawBytesTemp4[2] = {0};
+    uint8_t _rawBytesActual[2] = {0};
+    uint8_t _rawBytesMinimum[2] = {0};
+    uint8_t _rawBytesMaximum[2] = {0};
+    uint8_t _rawBytesAverage[2] = {0};
     uint8_t _statusByte = 0;
 
 public:
     MultiTempWithStatus(uint32_t did, const String& name);
     void parse(const uint8_t* busBytes);
-    float getTemperature1() const;
-    float getTemperature2() const;
-    float getTemperature3() const;
-    float getTemperature4() const;
+    float getActual() const;
+    float getMinimum() const;
+    float getMaximum() const;
+    float getAverage() const;
     uint8_t getStatus() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: TemperatureSetpointMetaData ========================================
+class TemperatureSetpointMetaData {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesLowerLimit[2] = {0};
+    uint8_t _rawBytesMinimum[2] = {0};
+    uint8_t _rawBytesDefault[2] = {0};
+    uint8_t _rawBytesMaximum[2] = {0};
+    uint8_t _rawBytesUpperLimit[2] = {0};
+
+public:
+    TemperatureSetpointMetaData(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    float getLowerLimit() const;
+    float getMinimum() const;
+    float getDefault() const;
+    float getMaximum() const;
+    float getUpperLimit() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: TemperatureSetpointMetaDataWithEfficiency ========================================
+class TemperatureSetpointMetaDataWithEfficiency {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesLowerLimit[2] = {0};
+    uint8_t _rawBytesMinimum[2] = {0};
+    uint8_t _rawBytesDefault[2] = {0};
+    uint8_t _rawBytesMaximum[2] = {0};
+    uint8_t _rawBytesUpperLimit[2] = {0};
+    uint8_t _rawBytesEfficiencyLowerLimit[2] = {0};
+    uint8_t _rawBytesEfficiencyUpperLimit[2] = {0};
+
+public:
+    TemperatureSetpointMetaDataWithEfficiency(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    float getLowerLimit() const;
+    float getMinimum() const;
+    float getDefault() const;
+    float getMaximum() const;
+    float getUpperLimit() const;
+    float getUpperEfficiencyLowerLimit() const;
+    float getUpperEfficiencyUpperLimit() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: Hysteresis ========================================
+class Hysteresis {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesSetpointSwitchOn[2]  = {0};
+    uint8_t _rawBytesSetpointSwitchOff[2] = {0};
+
+public:
+    Hysteresis(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    float getSetpointSwitchOn() const;
+    float getSetpointSwitchOff() const;
     uint32_t getDid() const { return _did; }
     String getName() const { return _name; }
     String getFormattedString() const;
@@ -100,19 +170,19 @@ class MultiPressureWithStatus {
 private:
     uint32_t _did;
     String _name;
-    uint8_t _rawBytesPressure1[2] = {0};
-    uint8_t _rawBytesPressure2[2] = {0};
-    uint8_t _rawBytesPressure3[2] = {0};
-    uint8_t _rawBytesPressure4[2] = {0};
+    uint8_t _rawBytesActual[2] = {0};
+    uint8_t _rawBytesMinimum[2] = {0};
+    uint8_t _rawBytesMaximum[2] = {0};
+    uint8_t _rawBytesAverage[2] = {0};
     uint8_t _statusByte = 0;
 
 public:
     MultiPressureWithStatus(uint32_t did, const String& name);
     void parse(const uint8_t* busBytes);
-    float getPressure1() const;
-    float getPressure2() const;
-    float getPressure3() const;
-    float getPressure4() const;
+    float getActual() const;
+    float getMinimum() const;
+    float getMaximum() const;
+    float getAverage() const;
     uint8_t getStatus() const;
     uint32_t getDid() const { return _did; }
     String getName() const { return _name; }
@@ -300,6 +370,208 @@ public:
     Power(uint32_t did, const String& name);
     void parse(const uint8_t* busBytes);
     uint32_t getPower() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: EnergyConsumption ========================================
+class EnergyConsumption {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesToday[4]        = {0};
+    uint8_t _rawBytesPast7Days[4]    = {0};
+    uint8_t _rawBytesCurrentMonth[4] = {0};
+    uint8_t _rawBytesPastMonth[4]    = {0};
+    uint8_t _rawBytesCurrentYear[4]  = {0};
+    uint8_t _rawBytesPastYear[4]     = {0};
+
+public:
+    EnergyConsumption(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    float getToday() const;
+    float getPast7Days() const;
+    float getCurrentMonth() const;
+    float getPastMonth() const;
+    float getCurrentYear() const;
+    float getPastYear() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: CanTime ========================================
+class CanTime {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesHour   = 0;
+    uint8_t _rawBytesMinute = 0;
+
+public:
+    CanTime(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    uint8_t getHour() const;
+    uint8_t getMinute() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: CanTimeWithSecond ========================================
+class CanTimeWithSecond {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesHour   = 0;
+    uint8_t _rawBytesMinute = 0;
+    uint8_t _rawBytesSecond = 0;
+
+public:
+    CanTimeWithSecond(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    uint8_t getHour() const;
+    uint8_t getMinute() const;
+    uint8_t getSecond() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: PressureConfiguration ========================================
+class PressureConfiguration {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesDefaultPressure[2]     = {0};
+    uint8_t _rawBytesNormalPressureDelta[2] = {0};
+    uint8_t _rawBytesMaximumPressure[2]     = {0};
+    uint8_t _rawBytesErrorThreshold[2]      = {0};
+
+public:
+    PressureConfiguration(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    float getDefaultPressure() const;
+    float getNormalPressureDelta() const;
+    float getMaximumPressure() const;
+    float getErrorThreshold() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: SeasonalCoefficient ========================================
+class SeasonalCoefficient {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesCurrentYear       =  0;
+    uint8_t _rawBytesEnergyThermal[4]  = {0};
+    uint8_t _rawBytesEnergyElectric[4] = {0};
+
+public:
+    SeasonalCoefficient(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    float getCurrentYear() const;
+    float getEnergyThermal() const;
+    float getEnergyElectric() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: ThermalPower ========================================
+class ThermalPower {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesPower[2]   = {0};
+    uint8_t _rawBytesUnknown[2] = {0};
+
+public:
+    ThermalPower(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    uint16_t getPower() const;
+    uint16_t getUnknown() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: NominalPower ========================================
+class NominalPower {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesPower[2]   = {0};
+    uint8_t _rawBytesUnknown[8] = {0};
+
+public:
+    NominalPower(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    uint16_t getPower() const;
+    uint64_t getUnknown() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: TemperatureOffsets ========================================
+class TemperatureOffsets {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesSetpointIncreaseRoomTemperatureHeating[2] = {0};
+    uint8_t _rawBytesSetpointDecreaseRoomTemperatureCooling[2] = {0};
+    uint8_t _rawBytesSetpointIncreaseDHWTemperature[2] = {0};
+    uint8_t _rawBytesSetpointIncreaseBufferTemperatureHeating[2] = {0};
+    uint8_t _rawBytesSetpointDecreaseBufferTemperatureCooling[2] = {0};
+
+public:
+    TemperatureOffsets(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    float getSetpointIncreaseRoomTemperatureHeating() const;
+    float getSetpointDecreaseRoomTemperatureCooling() const;
+    float getSetpointIncreaseDHWTemperature() const;
+    float getSetpointIncreaseBufferTemperatureHeating() const;
+    float getSetpointDecreaseBufferTemperatureCooling() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: PumpStatus ========================================
+class PumpStatus {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawByteActual      =  0;
+    uint8_t _rawBytesUnknown[4] = {0};
+
+public:
+    PumpStatus(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    uint8_t getActual() const;
+    uint32_t getUnknown() const;
+    uint32_t getDid() const { return _did; }
+    String getName() const { return _name; }
+    String getFormattedString() const;
+};
+
+// ======================================== Class: SetTemperature ========================================
+class SetTemperature {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _rawBytesMinimum[2] = {0};
+    uint8_t _rawBytesMaximum[2] = {0};
+
+public:
+    SetTemperature(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes);
+    float getMinimum() const;
+    float getMaximum() const;
     uint32_t getDid() const { return _did; }
     String getName() const { return _name; }
     String getFormattedString() const;

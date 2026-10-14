@@ -1,22 +1,6 @@
 #include "CanDecoder.h"
 
 // Helper
-static float convertBytesToFloat(const uint8_t* bytes) {
-    int16_t raw16 = (int16_t)(bytes[0] | (bytes[1] << 8));
-    return raw16 / 10.0f;
-}
-static float convertBytesToFloat32(const uint8_t* bytes) {
-    union FloatByteConverter {
-        float f;
-        uint8_t b[4];
-    };
-    FloatByteConverter converter;
-    converter.b[0] = bytes[0];
-    converter.b[1] = bytes[1];
-    converter.b[2] = bytes[2];
-    converter.b[3] = bytes[3];
-    return converter.f;
-}
 static int16_t convertBytesToInt16(const uint8_t* bytes) {
     return (int16_t)((uint16_t)bytes[0] | 
                      ((uint16_t)bytes[1] << 8));
@@ -37,6 +21,29 @@ static int64_t convertBytesToInt64(const uint8_t* bytes) {
                      ((uint64_t)bytes[6] << 48) | 
                      ((uint64_t)bytes[7] << 56));
 }
+static float convertBytesToFloat8(const uint8_t* byte) {
+    return byte / 10.0f;
+}
+static float convertBytesToFloat16(const uint8_t* bytes) {
+    int16_t raw16 = convertBytesToInt16(bytes);
+    return raw16 / 10.0f;
+}
+static float convertBytesToFloat32(const uint8_t* bytes) {
+    int32_t raw32 = convertBytesToInt32(bytes);
+    return raw32 / 10.0f;
+}
+static float convertBytesToRealFloat32(const uint8_t* bytes) {
+    union FloatByteConverter {
+        float f;
+        uint8_t b[4];
+    };
+    FloatByteConverter converter;
+    converter.b[0] = bytes[0];
+    converter.b[1] = bytes[1];
+    converter.b[2] = bytes[2];
+    converter.b[3] = bytes[3];
+    return converter.f;
+}
 
 // ======================================== Class: SingleTemp ========================================
 
@@ -50,7 +57,7 @@ void SingleTemp::parse(const uint8_t* busBytes) {
 }
 
 float SingleTemp::getTemperature() const {
-    return convertBytesToFloat(_rawBytes);
+    return convertBytesToFloat16(_rawBytes);
 }
 
 String SingleTemp::getFormattedString() const {
@@ -71,7 +78,7 @@ void TempWithStatus::parse(const uint8_t* busBytes) {
 }
 
 float TempWithStatus::getTemperature() const {
-    return convertBytesToFloat(_rawBytesTemp);
+    return convertBytesToFloat16(_rawBytesTemp);
 }
 
 uint8_t TempWithStatus::getStatus() const {
@@ -91,31 +98,31 @@ MultiTempWithStatus::MultiTempWithStatus(uint32_t did, const String& name) : _di
 }
 
 void MultiTempWithStatus::parse(const uint8_t* busBytes) {
-    _rawBytesTemp1[0] = busBytes[0];
-    _rawBytesTemp1[1] = busBytes[1];
-    _rawBytesTemp2[0] = busBytes[2];
-    _rawBytesTemp2[1] = busBytes[3];
-    _rawBytesTemp3[0] = busBytes[4];
-    _rawBytesTemp3[1] = busBytes[5];
-    _rawBytesTemp4[0] = busBytes[6];
-    _rawBytesTemp4[1] = busBytes[7];
+    _rawBytesActual[0] = busBytes[0];
+    _rawBytesActual[1] = busBytes[1];
+    _rawBytesMinimum[0] = busBytes[2];
+    _rawBytesMinimum[1] = busBytes[3];
+    _rawBytesMaximum[0] = busBytes[4];
+    _rawBytesMaximum[1] = busBytes[5];
+    _rawBytesAverage[0] = busBytes[6];
+    _rawBytesAverage[1] = busBytes[7];
     _statusByte       = busBytes[8];
 }
 
-float MultiTempWithStatus::getTemperature1() const {
-    return convertBytesToFloat(_rawBytesTemp1);
+float MultiTempWithStatus::getActual() const {
+    return convertBytesToFloat16(_rawBytesActual);
 }
 
-float MultiTempWithStatus::getTemperature2() const {
-    return convertBytesToFloat(_rawBytesTemp2);
+float MultiTempWithStatus::getMinimum() const {
+    return convertBytesToFloat16(_rawBytesMinimum);
 }
 
-float MultiTempWithStatus::getTemperature3() const {
-    return convertBytesToFloat(_rawBytesTemp3);
+float MultiTempWithStatus::getMaximum() const {
+    return convertBytesToFloat16(_rawBytesMaximum);
 }
 
-float MultiTempWithStatus::getTemperature4() const {
-    return convertBytesToFloat(_rawBytesTemp4);
+float MultiTempWithStatus::getAverage() const {
+    return convertBytesToFloat16(_rawBytesAverage);
 }
 
 uint8_t MultiTempWithStatus::getStatus() const {
@@ -124,13 +131,151 @@ uint8_t MultiTempWithStatus::getStatus() const {
 
 String MultiTempWithStatus::getFormattedString() const {
     String output = "";
-    output += "Actual:"        + String(getTemperature1(), 1) + "°C | ";
-    output += "Minimum:"       + String(getTemperature2(), 1) + "°C | ";
-    output += "Maximum:"       + String(getTemperature3(), 1) + "°C | ";
-    output += "Average:"       + String(getTemperature4(), 1) + "°C | ";
+    output += "Actual:"        + String(getActual(), 1) + "°C | ";
+    output += "Minimum:"       + String(getMinimum(), 1) + "°C | ";
+    output += "Maximum:"       + String(getMaximum(), 1) + "°C | ";
+    output += "Average:"       + String(getAverage(), 1) + "°C | ";
     output += "Sensor Status:" + String(getStatus());
     return output;
 }
+
+// ======================================== Class: TemperatureSetpointMetaData ========================================
+
+TemperatureSetpointMetaData::TemperatureSetpointMetaData(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void TemperatureSetpointMetaData::parse(const uint8_t* busBytes) {
+    _rawBytesLowerLimit[0] = busBytes[0];
+    _rawBytesLowerLimit[1] = busBytes[1];
+    _rawBytesMinimum[0]    = busBytes[2];
+    _rawBytesMinimum[1]    = busBytes[3];
+    _rawBytesDefault[0]    = busBytes[4];
+    _rawBytesDefault[1]    = busBytes[5];
+    _rawBytesMaximum[0]    = busBytes[6];
+    _rawBytesMaximum[1]    = busBytes[7];
+    _rawBytesUpperLimit[0] = busBytes[8];
+    _rawBytesUpperLimit[1] = busBytes[9];
+}
+
+float TemperatureSetpointMetaData::getLowerLimit() const {
+    return convertBytesToFloat16(_rawBytesLowerLimit);
+}
+
+float TemperatureSetpointMetaData::getMinimum() const {
+    return convertBytesToFloat16(_rawBytesMinimum);
+}
+
+float TemperatureSetpointMetaData::getDefault() const {
+    return convertBytesToFloat16(_rawBytesDefault);
+}
+
+float TemperatureSetpointMetaData::getMaximum() const {
+    return convertBytesToFloat16(_rawBytesMaximum);
+}
+
+float TemperatureSetpointMetaData::getUpperLimit() const {
+    return convertBytesToFloat16(_rawBytesUpperLimit);
+}
+
+String TemperatureSetpointMetaData::getFormattedString() const {
+    String output = "";
+    output += "LowerLimit:" + String(getLowerLimit(), 1) + "°C | ";
+    output += "Minimum:"    + String(getMinimum(), 1)    + "°C | ";
+    output += "Default:"    + String(getDefault(), 1)    + "°C | ";
+    output += "Maximum:"    + String(getMaximum(), 1)    + "°C | ";
+    output += "UpperLimit:" + String(getUpperLimit(), 1) + "°C";
+    return output;
+}
+
+// ======================================== Class: TemperatureSetpointMetaDataWithEfficiency ========================================
+
+TemperatureSetpointMetaDataWithEfficiency::TemperatureSetpointMetaDataWithEfficiency(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void TemperatureSetpointMetaDataWithEfficiency::parse(const uint8_t* busBytes) {
+    _rawBytesLowerLimit[0]     = busBytes[0];
+    _rawBytesLowerLimit[1]     = busBytes[1];
+    _rawBytesMinimum[0]        = busBytes[2];
+    _rawBytesMinimum[1]        = busBytes[3];
+    _rawBytesDefault[0]        = busBytes[4];
+    _rawBytesDefault[1]        = busBytes[5];
+    _rawBytesMaximum[0]        = busBytes[6];
+    _rawBytesMaximum[1]        = busBytes[7];
+    _rawBytesUpperLimit[0]     = busBytes[8];
+    _rawBytesUpperLimit[1]     = busBytes[9];
+    _rawBytesEfficiencyLowerLimit[0] = busBytes[10];
+    _rawBytesEfficiencyLowerLimit[1] = busBytes[11];
+    _rawBytesEfficiencyUpperLimit[0] = busBytes[12];
+    _rawBytesEfficiencyUpperLimit[1] = busBytes[13];
+}
+
+float TemperatureSetpointMetaDataWithEfficiency::getLowerLimit() const {
+    return convertBytesToFloat16(_rawBytesLowerLimit);
+}
+
+float TemperatureSetpointMetaDataWithEfficiency::getMinimum() const {
+    return convertBytesToFloat16(_rawBytesMinimum);
+}
+
+float TemperatureSetpointMetaDataWithEfficiency::getDefault() const {
+    return convertBytesToFloat16(_rawBytesDefault);
+}
+
+float TemperatureSetpointMetaDataWithEfficiency::getMaximum() const {
+    return convertBytesToFloat16(_rawBytesMaximum);
+}
+
+float TemperatureSetpointMetaDataWithEfficiency::getUpperLimit() const {
+    return convertBytesToFloat16(_rawBytesUpperLimit);
+}
+
+float TemperatureSetpointMetaDataWithEfficiency::getEfficiencyLowerLimit() const {
+    return convertBytesToFloat16(_rawBytesEfficiencyLowerLimit);
+}
+
+float TemperatureSetpointMetaDataWithEfficiency::getEfficiencyUpperLimit() const {
+    return convertBytesToFloat16(_rawBytesEfficiencyUpperLimit);
+}
+
+String TemperatureSetpointMetaDataWithEfficiency::getFormattedString() const {
+    String output = "";
+    output += "LowerLimit:"           + String(getLowerLimit(), 1)           + "°C | ";
+    output += "Minimum:"              + String(getMinimum(), 1)              + "°C | ";
+    output += "Default:"              + String(getDefault(), 1)              + "°C | ";
+    output += "Maximum:"              + String(getMaximum(), 1)              + "°C | ";
+    output += "UpperLimit:"           + String(getUpperLimit(), 1)           + "°C | ";
+    output += "EfficiencyLowerLimit:" + String(getEfficiencyLowerLimit(), 1) + "°C | ";
+    output += "EfficiencyUpperLimit:" + String(getEfficiencyUpperLimit(), 1) + "°C";
+    return output;
+}
+
+// ======================================== Class: Hysteresis ========================================
+
+Hysteresis::Hysteresis(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void Hysteresis::parse(const uint8_t* busBytes) {
+    _rawBytesSetpointSwitchOn[0]  = busBytes[0];
+    _rawBytesSetpointSwitchOn[1]  = busBytes[1];
+    _rawBytesSetpointSwitchOff[0] = busBytes[2];
+    _rawBytesSetpointSwitchOff[1] = busBytes[3];
+}
+
+float Hysteresis::getSetpointSwitchOn() const {
+    return convertBytesToFloat16(_rawBytesSetpointSwitchOn);
+}
+
+float Hysteresis::getSetpointSwitchOff() const {
+    return convertBytesToFloat16(_rawBytesSetpointSwitchOff);
+}
+
+String Hysteresis::getFormattedString() const {
+    String output = "";
+    output += "Setpoint Switch On:"  + String(getSetpointSwitchOn(), 1)  + "°C | ";
+    output += "Setpoint Switch Off:" + String(getSetpointSwitchOff(), 1) + "°C";
+    return output;
+}
+
 
 // ======================================== Class: SinglePressure ========================================
 
@@ -144,7 +289,7 @@ void SinglePressure::parse(const uint8_t* busBytes) {
 }
 
 float SinglePressure::getPressure() const {
-    return convertBytesToFloat(_rawBytes);
+    return convertBytesToFloat16(_rawBytes);
 }
 
 String SinglePressure::getFormattedString() const {
@@ -165,7 +310,7 @@ void PressureWithStatus::parse(const uint8_t* busBytes) {
 }
 
 float PressureWithStatus::getPressure() const {
-    return convertBytesToFloat(_rawBytesPressure);
+    return convertBytesToFloat16(_rawBytesPressure);
 }
 
 uint8_t PressureWithStatus::getStatus() const {
@@ -185,31 +330,31 @@ MultiPressureWithStatus::MultiPressureWithStatus(uint32_t did, const String& nam
 }
 
 void MultiPressureWithStatus::parse(const uint8_t* busBytes) {
-    _rawBytesPressure1[0] = busBytes[0];
-    _rawBytesPressure1[1] = busBytes[1];
-    _rawBytesPressure2[0] = busBytes[2];
-    _rawBytesPressure2[1] = busBytes[3];
-    _rawBytesPressure3[0] = busBytes[4];
-    _rawBytesPressure3[1] = busBytes[5];
-    _rawBytesPressure4[0] = busBytes[6];
-    _rawBytesPressure4[1] = busBytes[7];
+    _rawBytesActual[0] = busBytes[0];
+    _rawBytesActual[1] = busBytes[1];
+    _rawBytesMinimum[0] = busBytes[2];
+    _rawBytesMinimum[1] = busBytes[3];
+    _rawBytesMaximum[0] = busBytes[4];
+    _rawBytesMaximum[1] = busBytes[5];
+    _rawBytesAverage[0] = busBytes[6];
+    _rawBytesAverage[1] = busBytes[7];
     _statusByte       = busBytes[8];
 }
 
-float MultiPressureWithStatus::getPressure1() const {
-    return convertBytesToFloat(_rawBytesPressure1);
+float MultiPressureWithStatus::getActual() const {
+    return convertBytesToFloat16(_rawBytesActual);
 }
 
-float MultiPressureWithStatus::getPressure2() const {
-    return convertBytesToFloat(_rawBytesPressure2);
+float MultiPressureWithStatus::getMinimum() const {
+    return convertBytesToFloat16(_rawBytesMinimum);
 }
 
-float MultiPressureWithStatus::getPressure3() const {
-    return convertBytesToFloat(_rawBytesPressure3);
+float MultiPressureWithStatus::getMaximum() const {
+    return convertBytesToFloat16(_rawBytesMaximum);
 }
 
-float MultiPressureWithStatus::getPressure4() const {
-    return convertBytesToFloat(_rawBytesPressure4);
+float MultiPressureWithStatus::getAverage() const {
+    return convertBytesToFloat16(_rawBytesAverage);
 }
 
 uint8_t MultiPressureWithStatus::getStatus() const {
@@ -218,10 +363,10 @@ uint8_t MultiPressureWithStatus::getStatus() const {
 
 String MultiPressureWithStatus::getFormattedString() const {
     String output = "";
-    output += "Actual:"        + String(getPressure1(), 1) + "°C | ";
-    output += "Minimum:"       + String(getPressure2(), 1) + "°C | ";
-    output += "Maximum:"       + String(getPressure3(), 1) + "°C | ";
-    output += "Average:"       + String(getPressure4(), 1) + "°C | ";
+    output += "Actual:"        + String(getActual(), 1) + "°C | ";
+    output += "Minimum:"       + String(getMinimum(), 1) + "°C | ";
+    output += "Maximum:"       + String(getMaximum(), 1) + "°C | ";
+    output += "Average:"       + String(getAverage(), 1) + "°C | ";
     output += "Sensor Status:" + String(getStatus());
     return output;
 }
@@ -506,11 +651,11 @@ void FlowSensor::parse(const uint8_t* busBytes) {
 }
 
 float FlowSensor::getActual() const {
-    return convertBytesToFloat(_rawBytesActual);
+    return convertBytesToFloat16(_rawBytesActual);
 }
 
 float FlowSensor::getTemperature() const {
-    return convertBytesToFloat(_rawBytesTemperature);
+    return convertBytesToFloat16(_rawBytesTemperature);
 }
 
 uint8_t FlowSensor::getUnknown() const {
@@ -544,6 +689,367 @@ uint32_t Power::getPower() const {
 String Power::getFormattedString() const {
     String output = "";
     output += "Power:" + String(getPower()) + "W";
+    return output;
+}
+
+// ======================================== Class: EnergyConsumption ========================================
+
+EnergyConsumption::EnergyConsumption(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void EnergyConsumption::parse(const uint8_t* busBytes) {
+    _rawBytesToday[0]        = busBytes[0];
+    _rawBytesToday[1]        = busBytes[1];
+    _rawBytesToday[2]        = busBytes[2];
+    _rawBytesToday[3]        = busBytes[3];
+    _rawBytesPast7Days[0]    = busBytes[4];
+    _rawBytesPast7Days[1]    = busBytes[5];
+    _rawBytesPast7Days[2]    = busBytes[6];
+    _rawBytesPast7Days[3]    = busBytes[7];
+    _rawBytesCurrentMonth[0] = busBytes[8];
+    _rawBytesCurrentMonth[1] = busBytes[9];
+    _rawBytesCurrentMonth[2] = busBytes[10];
+    _rawBytesCurrentMonth[3] = busBytes[11];
+    _rawBytesPastMonth[0]    = busBytes[12];
+    _rawBytesPastMonth[1]    = busBytes[13];
+    _rawBytesPastMonth[2]    = busBytes[14];
+    _rawBytesPastMonth[3]    = busBytes[15];
+    _rawBytesCurrentYear[0]  = busBytes[16];
+    _rawBytesCurrentYear[1]  = busBytes[17];
+    _rawBytesCurrentYear[2]  = busBytes[18];
+    _rawBytesCurrentYear[3]  = busBytes[19];
+    _rawBytesPastYear[0]     = busBytes[20];
+    _rawBytesPastYear[1]     = busBytes[21];
+    _rawBytesPastYear[2]     = busBytes[22];
+    _rawBytesPastYear[3]     = busBytes[23];
+}
+
+float EnergyConsumption::getToday() const {
+    return convertBytesToFloat32(_rawBytesToday);
+}
+
+float EnergyConsumption::getPast7Days() const {
+    return convertBytesToFloat32(_rawBytesPast7Days);
+}
+
+float EnergyConsumption::getCurrentMonth() const {
+    return convertBytesToFloat32(_rawBytesCurrentMonth);
+}
+
+float EnergyConsumption::getPastMonth() const {
+    return convertBytesToFloat32(_rawBytesPastMonth);
+}
+
+float EnergyConsumption::getCurrentYear() const {
+    return convertBytesToFloat32(_rawBytesCurrentYear);
+}
+
+float EnergyConsumption::getPastYear() const {
+    return convertBytesToFloat32(_rawBytesPastYear);
+}
+
+String EnergyConsumption::getFormattedString() const {
+    String output = "";
+    output += "Today:"        + String(getToday(), 1)        + "kWh | ";
+    output += "Past7Days:"    + String(getPast7Days(), 1)    + "kWh | ";
+    output += "CurrentMonth:" + String(getCurrentMonth(), 1) + "kWh | ";
+    output += "PastMonth:"    + String(getPastMonth(), 1)    + "kWh | ";
+    output += "CurrentYear:"  + String(getCurrentYear(), 1)  + "kWh | ";
+    output += "PastYear:"     + String(getPastYear(), 1)     + "kWh";
+    return output;
+}
+
+// ======================================== Class: CanTime ========================================
+
+CanTime::CanTime(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void CanTime::parse(const uint8_t* busBytes) {
+    _rawBytesHour   = busBytes[0];
+    _rawBytesMinute = busBytes[1];
+}
+
+int8_t CanTime::getHour() const {
+    return (int8_t)_rawBytesHour;
+}
+
+int8_t CanTime::getMinute() const {
+    return (int8_t)_rawBytesMinute;
+}
+
+String CanTime::getFormattedString() const {
+    String output = "";
+    output += (getHour() < 10 ? "0" : "") + String(getHour()) + ":"  + (getMinute() < 10 ? "0" : "") + String(getMinute());
+    return output;
+}
+
+// ======================================== Class: CanTimeWithSecond ========================================
+
+CanTimeWithSecond::CanTimeWithSecond(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void CanTimeWithSecond::parse(const uint8_t* busBytes) {
+    _rawBytesHour   = busBytes[0];
+    _rawBytesMinute = busBytes[1];
+    _rawBytesSecond = busBytes[2];
+}
+
+int8_t CanTimeWithSecond::getHour() const {
+    return (int8_t)_rawBytesHour;
+}
+
+int8_t CanTimeWithSecond::getMinute() const {
+    return (int8_t)_rawBytesMinute;
+}
+
+int8_t CanTimeWithSecond::getSecond() const {
+    return (int8_t)_rawBytesSecond;
+}
+
+String CanTimeWithSecond::getFormattedString() const {
+    String output = "";
+    output += (getHour() < 10 ? "0" : "") + String(getHour()) + ":" + (getMinute() < 10 ? "0" : "") + String(getMinute()) + ":" + (getSecond() < 10 ? "0" : "") + String(getSecond());
+    return output;
+}
+
+// ======================================== Class: PressureConfiguration ========================================
+
+PressureConfiguration::PressureConfiguration(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void PressureConfiguration::parse(const uint8_t* busBytes) {
+    _rawBytesDefaultPressure[0]     = busBytes[0];
+    _rawBytesDefaultPressure[1]     = busBytes[1];
+    _rawBytesNormalPressureDelta[0] = busBytes[2];
+    _rawBytesNormalPressureDelta[1] = busBytes[3];
+    _rawBytesMaximumPressure[0]     = busBytes[4];
+    _rawBytesMaximumPressure[1]     = busBytes[5];
+    _rawBytesErrorThreshold[0]      = busBytes[6];
+    _rawBytesErrorThreshold[1]      = busBytes[7];
+}
+
+float PressureConfiguration::getDefaultPressure() const {
+    return convertBytesToFloat16(_rawBytesDefaultPressure);
+}
+
+float PressureConfiguration::getNormalPressureDelta() const {
+    return convertBytesToFloat16(_rawBytesNormalPressureDelta);
+}
+
+float PressureConfiguration::getMaximumPressure() const {
+    return convertBytesToFloat16(_rawBytesMaximumPressure);
+}
+
+float PressureConfiguration::getErrorThreshold() const {
+    return convertBytesToFloat16(_rawBytesErrorThreshold);
+}
+
+String PressureConfiguration::getFormattedString() const {
+    String output = "";
+    output += "Default:"         + String(getDefaultPressure(), 1)     + "bar | ";
+    output += "Normal Delta:"    + String(getNormalPressureDelta(), 1) + "bar | ";
+    output += "Maximum:"         + String(getMaximumPressure(), 1)     + "bar | ";
+    output += "Error Threshold:" + String(getErrorThreshold(), 1)      + "bar";
+    return output;
+}
+
+// ======================================== Class: SeasonalCoefficient ========================================
+
+SeasonalCoefficient::SeasonalCoefficient(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void SeasonalCoefficient::parse(const uint8_t* busBytes) {
+    _rawBytesCurrentYear       = busBytes[0];
+    _rawBytesEnergyThermal[0]  = busBytes[1];
+    _rawBytesEnergyThermal[1]  = busBytes[2];
+    _rawBytesEnergyThermal[2]  = busBytes[3];
+    _rawBytesEnergyThermal[3]  = busBytes[4];
+    _rawBytesEnergyElectric[0] = busBytes[5];
+    _rawBytesEnergyElectric[1] = busBytes[6];
+    _rawBytesEnergyElectric[2] = busBytes[7];
+    _rawBytesEnergyElectric[3] = busBytes[8];
+}
+
+float SeasonalCoefficient::getCurrentYear() const {
+    return convertBytesToFloat8(_rawBytesCurrentYear);
+}
+
+float SeasonalCoefficient::getEnergyThermal() const {
+    return convertBytesToFloat32(_rawBytesEnergyThermal);
+}
+
+float SeasonalCoefficient::getEnergyElectric() const {
+    return convertBytesToFloat32(_rawBytesEnergyElectric);
+}
+
+String SeasonalCoefficient::getFormattedString() const {
+    String output = "";
+    output += "Current Year:"    + String(getCurrentYear(), 1)    + " | ";
+    output += "Energy Thermal:"  + String(getEnergyThermal(), 1)  + "kWh | ";
+    output += "Energy Electric:" + String(getEnergyElectric(), 1) + "kWh";
+    return output;
+}
+
+// ======================================== Class: ThermalPower ========================================
+
+ThermalPower::ThermalPower(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void ThermalPower::parse(const uint8_t* busBytes) {
+    _rawBytesPower[0]   = busBytes[0];
+    _rawBytesPower[1]   = busBytes[1];
+    _rawBytesUnknown[0] = busBytes[2];
+    _rawBytesUnknown[1] = busBytes[3];
+}
+
+uint16_t ThermalPower::getPower() const {
+    return convertBytesToInt16(_rawBytesPower);
+}
+
+uint16_t ThermalPower::getUnknown() const {
+    return convertBytesToInt16(_rawBytesUnknown);
+}
+
+String ThermalPower::getFormattedString() const {
+    String output = "";
+    output += "Power:"   + String(getPower()) + "kW | ";
+    output += "Unknown:" + String(getUnknown());
+    return output;
+}
+
+// ======================================== Class: NominalPower ========================================
+
+NominalPower::NominalPower(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void NominalPower::parse(const uint8_t* busBytes) {
+    _rawBytesPower[0]   = busBytes[0];
+    _rawBytesPower[1]   = busBytes[1];
+    _rawBytesUnknown[0] = busBytes[2];
+    _rawBytesUnknown[1] = busBytes[3];
+    _rawBytesUnknown[2] = busBytes[4];
+    _rawBytesUnknown[3] = busBytes[5];
+    _rawBytesUnknown[4] = busBytes[6];
+    _rawBytesUnknown[5] = busBytes[7];
+    _rawBytesUnknown[6] = 0;
+    _rawBytesUnknown[8] = 0;
+}
+
+uint16_t NominalPower::getPower() const {
+    return convertBytesToInt16(_rawBytesPower);
+}
+
+uint64_t NominalPower::getUnknown() const {
+    return convertBytesToInt64(_rawBytesUnknown);
+}
+
+String NominalPower::getFormattedString() const {
+    String output = "";
+    output += "Power:"   + String(getPower()) + "kW | ";
+    output += "Unknown:" + String(getUnknown());
+    return output;
+}
+
+// ======================================== Class: TemperatureOffsets ========================================
+
+TemperatureOffsets::TemperatureOffsets(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void TemperatureOffsets::parse(const uint8_t* busBytes) {
+    _rawBytesSetpointIncreaseRoomTemperatureHeating[0]   = busBytes[0];
+    _rawBytesSetpointIncreaseRoomTemperatureHeating[1]   = busBytes[1];
+    _rawBytesSetpointDecreaseRoomTemperatureCooling[0]   = busBytes[2];
+    _rawBytesSetpointDecreaseRoomTemperatureCooling[1]   = busBytes[3];
+    _rawBytesSetpointIncreaseDHWTemperature[0]           = busBytes[4];
+    _rawBytesSetpointIncreaseDHWTemperature[1]           = busBytes[5];
+    _rawBytesSetpointIncreaseBufferTemperatureHeating[0] = busBytes[6];
+    _rawBytesSetpointIncreaseBufferTemperatureHeating[1] = busBytes[7];
+    _rawBytesSetpointDecreaseBufferTemperatureCooling[0] = busBytes[8];
+    _rawBytesSetpointDecreaseBufferTemperatureCooling[1] = busBytes[9];
+}
+
+float TemperatureOffsets::getSetpointIncreaseRoomTemperatureHeating() const {
+    return convertBytesToFloat16(_rawBytesSetpointIncreaseRoomTemperatureHeating);
+}
+
+float TemperatureOffsets::getSetpointDecreaseRoomTemperatureCooling() const {
+    return convertBytesToFloat16(_rawBytesSetpointDecreaseRoomTemperatureCooling);
+}
+
+float TemperatureOffsets::getSetpointIncreaseDHWTemperature() const {
+    return convertBytesToFloat16(_rawBytesSetpointIncreaseDHWTemperature);
+}
+
+float TemperatureOffsets::getSetpointIncreaseBufferTemperatureHeating() const {
+    return convertBytesToFloat16(_rawBytesSetpointIncreaseBufferTemperatureHeating);
+}
+
+float TemperatureOffsets::getSetpointDecreaseBufferTemperatureCooling() const {
+    return convertBytesToFloat16(_rawBytesSetpointDecreaseBufferTemperatureCooling);
+}
+
+String TemperatureOffsets::getFormattedString() const {
+    String output = "";
+    output += "SetP Inc Room Temp Heating:"   + String(getSetpointIncreaseRoomTemperatureHeating(), 1)   + "°C | ";
+    output += "SetP Dec Room Temp Cooling:"   + String(getSetpointDecreaseRoomTemperatureCooling(), 1)   + "°C | ";
+    output += "SetP Inc DHW Temp:"            + String(getSetpointIncreaseDHWTemperature(), 1).          + "°C | ";
+    output += "SetP Inc Buffer Temp Heating:" + String(getSetpointIncreaseBufferTemperatureHeating(), 1) + "°C | ";
+    output += "SetP Dec Buffer Temp Cooling:" + String(getSetpointDecreaseBufferTemperatureCooling(), 1) + "°C";
+    return output;
+}
+
+// ======================================== Class: PumpStatus ========================================
+
+PumpStatus::PumpStatus(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void PumpStatus::parse(const uint8_t* busBytes) {
+    _rawByteActual      = busBytes[0];
+    _rawBytesUnknown[0] = busBytes[1];
+    _rawBytesUnknown[1] = busBytes[2];
+    _rawBytesUnknown[2] = busBytes[3];
+    _rawBytesUnknown[3] = busBytes[4];
+}
+
+uint8_t PumpStatus::getActual() const {
+    return (uint8_t)_rawByteActual;
+}
+
+uint16_t PumpStatus::getUnknown() const {
+    return convertBytesToInt32(_rawBytesUnknown);
+}
+
+String PumpStatus::getFormattedString() const {
+    String output = "";
+    output += "Actual:"  + String(getActual()) + " | ";
+    output += "Unknown:" + String(getUnknown());
+    return output;
+}
+
+// ======================================== Class: SetTemperature ========================================
+
+SetTemperature::SetTemperature(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void SetTemperature::parse(const uint8_t* busBytes) {
+    _rawBytesMinimum[0] = busBytes[0];
+    _rawBytesMinimum[1] = busBytes[1];
+    _rawBytesMaximum[0] = busBytes[2];
+    _rawBytesMaximum[1] = busBytes[3];
+}
+
+float SetTemperature::getMinimum() const {
+    return convertBytesToFloat16(_rawBytesMinimum);
+}
+
+float SetTemperature::getMaximum() const {
+    return convertBytesToFloat16(_rawBytesMaximum);
+}
+
+String SetTemperature::getFormattedString() const {
+    String output = "";
+    output += "Minimum:" + String(getMinimum(), 1) + "°C | ";
+    output += "Maximum:" + String(getMaximum(), 1) + "°C";
     return output;
 }
 
@@ -665,7 +1171,7 @@ void CanFloat32::parse(const uint8_t* busBytes) {
 }
 
 float CanFloat32::getFloat() const {
-    return convertBytesToFloat32(_rawBytes);
+    return convertBytesToRealFloat32(_rawBytes);
 }
 
 String CanFloat32::getFormattedString() const {

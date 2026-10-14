@@ -29,12 +29,15 @@
  */
 
 #include <WiFi.h>
+#include <esp_task_wdt.h>
 #include <AsyncTCP.h>       
 #include <ESPAsyncWebServer.h> 
 #include <ElegantOTA.h>
 #include "driver/twai.h"
 #include "known_dids.h"
 #include "secrets.h"
+
+#define WATCHDOG_TIMEOUT_SECONDS 10
 
 // Wi-Fi access data - Please adjust in secrets.h
 const char* ssid = SECRET_SSID;
@@ -74,6 +77,16 @@ const unsigned long scanStepInterval = 1250;
 
 uint16_t foundDids[10];
 uint8_t foundDidCount = 0;
+
+void setupWatchdog() {
+    esp_task_wdt_config_t wdt_config = {
+        .timeout_ms = WATCHDOG_TIMEOUT_SECONDS * 1000,
+        .idle_core_mask = (1 << 0) | (1 << 1),
+        .trigger_panic = true
+    };
+    esp_task_wdt_init(&wdt_config);
+    esp_task_wdt_add(NULL); 
+}
 
 // Dynamic bit register for capturing ALL responding DIDs
 uint8_t scanResultBitRegister[438] = {0}; 
@@ -310,11 +323,23 @@ const char index_html[] PROGMEM = R"rawliteral(
                 <option value="9">E-cartridge statistics (e.g.: DID 2370)</option> 
                 <option value="10">Flow sensor (e.g.: DID 1043)</option> 
                 <option value="11">Power (e.g.: DID 2486)</option> 
-                <option value="12">Utf8 [Text] (e.g.: DID 377 or 627)</option> 
-                <option value="13">Int8 [%, ENUM, dBm, min, cnt, mbar] (e.g.: DID 2346)</option> 
-                <option value="14">Int16 [°C, bar, hPas, l/h, h, rps, rpm, µA, mA, Wh, W, kW, VA, m3] (e.g.: DID 919)</option> 
-                <option value="15">Int32 [W, kWh, V, A] (e.g.: DID 2342)</option> 
-                <option value="16">Float32 [Ah, %] (e.g.: DID 2990)</option>
+                <option value="12">Setpoint Meta Data (e.g.: DID 504)</option> 
+                <option value="13">Energy Consumption (e.g.: DID 548)</option> 
+                <option value="14">Time (e.g.: DID 875 or 877)</option> 
+                <option value="15">Hysteresis (e.g.: DID 1085)</option> 
+                <option value="16">Pressure Configuration (e.g.: DID 1721)</option>
+                <option value="17">Seasonal Coefficient (e.g.: DID 2622)</option>
+                <option value="18">Thermal Power (e.g.: DID 1190)</option>
+                <option value="19">Nominal Power (e.g.: DID 2574)</option>
+                <option value="20">Temperature Offsets (e.g.: DID 2543)</option>
+                <option value="21">Pump Status (e.g.: DID 2791)</option>
+                <option value="22">Set Temperature (e.g.: DID 3106)</option>
+                <option value="50">Utf8 [Text] (e.g.: DID 377 or 627)</option> 
+                <option value="51">Int8 [%, ENUM, dBm, min, cnt, mbar] (e.g.: DID 2346)</option> 
+                <option value="52">Int16 [°C, bar, hPas, l/h, h, rps, rpm, µA, mA, Wh, W, kW, VA, m3] (e.g.: DID 919)</option> 
+                <option value="53">Int32 [W, kWh, V, A] (e.g.: DID 2342)</option> 
+                <option value="54">Int64 [...] (e.g.: DID ...)</option> 
+                <option value="55">Float32 [Ah, %] (e.g.: DID 2990)</option>
             </select>
         </div>
         <div class="result-box">
@@ -337,8 +362,9 @@ union FloatByteConverter {
 
 void processDecoding() {
     if (decodeMode == 0) { decodedValueStr = "--- (Off)"; return; }
-    uint8_t payloadBytes[32] = {0};
-    size_t payloadLen = hexStringToBytes(lastRxPayload, payloadBytes, 16);
+    uint8_t payloadBytes[64] = {0};
+    size_t payloadLen = hexStringToBytes(lastRxPayload, payloadBytes, 64);
+
     if ((decodeMode == 1) || (decodeMode == 2)) { // Temperature or Pressure
         String sign = (decodeMode == 1) ? "°C" : "bar";
         if (payloadLen == 2) {
@@ -362,6 +388,7 @@ void processDecoding() {
             String s5 = String(payloadBytes[8]);
             decodedValueStr = "Actual:" + s1 + sign + " | Minimum:" + s2 + sign + " | Maximum:" + s3 + sign + " | Average:" + s4 + sign + " | Sensor Status:" + s5;
         } else { decodedValueStr = "Error: Payload too short!"; }
+
     } else if (decodeMode == 3) { // Pump
         if (payloadLen == 4) {
             String s1 = String(payloadBytes[0]);
@@ -370,6 +397,7 @@ void processDecoding() {
             String s4 = String(payloadBytes[3]);
             decodedValueStr = "State:" + s1 + " | Target:" + s2 + "% | Actual:" + s3 + "% | Unknown:" + s4;
         } else { decodedValueStr = "Error: Payload too short!"; }
+
     } else if (decodeMode == 4) { // Mixer pump
         if (payloadLen == 5) {
             String s1 = String(payloadBytes[0]);
@@ -379,18 +407,21 @@ void processDecoding() {
             String s5 = String(payloadBytes[4]);
             decodedValueStr = "Target Power State:" + s1 + " | Target Value:" + s2 + " | Power State:" + s3 + " | Error State:" + s4 + " | Actual Value:" + s5;
         } else { decodedValueStr = "Error: Payload too short!"; }
+
     } else if (decodeMode == 5) { // Mode & State
         if (payloadLen == 2) {
             String s1 = String(payloadBytes[0]);
             String s2 = String(payloadBytes[1]);
             decodedValueStr = "Mode:" + s1 + " | State:" + s2;
         } else { decodedValueStr = "Error: Payload too short!"; }
+
     } else if (decodeMode == 6) { // Power & Error
         if (payloadLen == 2) {
             String s1 = String(payloadBytes[0]);
             String s2 = String(payloadBytes[1]);
             decodedValueStr = "Power:" + s1 + " | Error:" + s2;
         } else { decodedValueStr = "Error: Payload too short!"; }
+
     } else if (decodeMode == 7) { // Mixer curve
         if (payloadLen == 4) {
             int16_t v3 = ((int16_t)payloadBytes[3] << 8) | payloadBytes[2];
@@ -399,6 +430,7 @@ void processDecoding() {
             String s3 = String(v3);
             decodedValueStr = "Gradient:" + s1 + " | Level:" + s2 + " | Base Point:" + s3;
         } else { decodedValueStr = "Error: Payload too short!"; }
+
     } else if (decodeMode == 8) { // Compressor statistics
         if (payloadLen == 14) {
             int64_t v1 = ((int64_t)payloadBytes[5] << 40) | ((int64_t)payloadBytes[4] << 32) | ((int64_t)payloadBytes[3] << 24) | ((int64_t)payloadBytes[2] << 16) | ((int64_t)payloadBytes[1] << 8) | payloadBytes[0];
@@ -413,6 +445,7 @@ void processDecoding() {
             String s5 = String(v5);
             decodedValueStr = "Unknown 1:" + s1 + " | Starts:" + s2 + " | Unknown 2:" + s3 + " | Hours:" + s4 + " | Unknown 3:" + s5;
         } else { decodedValueStr = "Error: Payload too short!"; }
+
     } else if (decodeMode == 9) { // E-cartridge statistics
         if (payloadLen == 11) {
             int64_t v1 = ((int64_t)payloadBytes[2] << 16) | ((int64_t)payloadBytes[1] << 8) | payloadBytes[0];
@@ -427,6 +460,7 @@ void processDecoding() {
             String s5 = String(v5);
             decodedValueStr = "Unknown 1:" + s1 + " | Starts:" + s2 + " | Unknown 2:" + s3 + " | Hours:" + s4 + " | Unknown 3:" + s5;
         } else { decodedValueStr = "Error: Payload too short!"; }
+
     } else if (decodeMode == 10) { // Flow sensor
         if (payloadLen == 5) {
             int16_t v1 = ((int16_t)payloadBytes[1] << 8) | payloadBytes[0];
@@ -437,40 +471,202 @@ void processDecoding() {
             String s3 = String(v3);
             decodedValueStr = "Actual:" + s1 + "l/h | Temperature:" + s2 + "°C | Unknown:" + s3;
         } else { decodedValueStr = "Error: Payload too short!"; }
+
     } else if (decodeMode == 11) { // Power
         if (payloadLen == 4) {
             int64_t v1 = ((int64_t)payloadBytes[3] << 24) | ((int64_t)payloadBytes[2] << 16) | ((int64_t)payloadBytes[1] << 8) | payloadBytes[0];
             String s1 = String(v1);
             decodedValueStr = "Actual:" + s1 + "W";
         } else { decodedValueStr = "Error: Payload too short!"; }
-    } else if (decodeMode == 12) { // Utf8
+
+    } else if (decodeMode == 12) { // Setpoint Meta Data
+        if (payloadLen == 10) {
+            int16_t v1 = ((int16_t)payloadBytes[1] << 8) | payloadBytes[0];
+            int16_t v2 = ((int16_t)payloadBytes[3] << 8) | payloadBytes[2];
+            int16_t v3 = ((int16_t)payloadBytes[5] << 8) | payloadBytes[4];
+            int16_t v4 = ((int16_t)payloadBytes[7] << 8) | payloadBytes[6];
+            int16_t v5 = ((int16_t)payloadBytes[9] << 8) | payloadBytes[8];
+            String s1 = String(v1 / 10.0, 1);
+            String s2 = String(v2 / 10.0, 1);
+            String s3 = String(v3 / 10.0, 1);
+            String s4 = String(v4 / 10.0, 1);
+            String s5 = String(v5 / 10.0, 1);
+            decodedValueStr = "Lower Limit:" + s1 + "°C  | Min:" + s2 + "°C  | Default:" + s3 + "°C  |  Max:" + s4 + "°C  | Upper Limit:" + s5 + "°C";
+        } else if (payloadLen == 14) {
+            int16_t v1 = ((int16_t)payloadBytes[1] << 8) | payloadBytes[0];
+            int16_t v2 = ((int16_t)payloadBytes[3] << 8) | payloadBytes[2];
+            int16_t v3 = ((int16_t)payloadBytes[5] << 8) | payloadBytes[4];
+            int16_t v4 = ((int16_t)payloadBytes[7] << 8) | payloadBytes[6];
+            int16_t v5 = ((int16_t)payloadBytes[9] << 8) | payloadBytes[8];
+            int16_t v6 = ((int16_t)payloadBytes[11] << 8) | payloadBytes[10];
+            int16_t v7 = ((int16_t)payloadBytes[13] << 8) | payloadBytes[12];
+            String s1 = String(v1 / 10.0, 1);
+            String s2 = String(v2 / 10.0, 1);
+            String s3 = String(v3 / 10.0, 1);
+            String s4 = String(v4 / 10.0, 1);
+            String s5 = String(v5 / 10.0, 1);
+            String s6 = String(v6 / 10.0, 1);
+            String s7 = String(v7 / 10.0, 1);
+            decodedValueStr = "Lower Limit:" + s1 + "°C | Min:" + s2 + "°C | Default:" + s3 + "°C | Max:" + s4 + "°C | Upper Limit:" + s5 + "°C | Efficiency Lower Limit:" + s6 + "°C | Efficiency Upper Limit:" + s7 + "°C";
+        } else { decodedValueStr = "Error: Payload too short!"; }
+
+    } else if (decodeMode == 13) { // Energy Consumption
+        if (payloadLen == 24) {
+            int32_t v1 = ((int32_t)payloadBytes[3]  << 24) | ((int32_t)payloadBytes[2]  << 16) | ((int32_t)payloadBytes[1]  << 8) | payloadBytes[0];
+            int32_t v2 = ((int32_t)payloadBytes[7]  << 24) | ((int32_t)payloadBytes[6]  << 16) | ((int32_t)payloadBytes[5]  << 8) | payloadBytes[4];
+            int32_t v3 = ((int32_t)payloadBytes[11] << 24) | ((int32_t)payloadBytes[10] << 16) | ((int32_t)payloadBytes[9]  << 8) | payloadBytes[8];
+            int32_t v4 = ((int32_t)payloadBytes[15] << 24) | ((int32_t)payloadBytes[14] << 16) | ((int32_t)payloadBytes[13] << 8) | payloadBytes[12];
+            int32_t v5 = ((int32_t)payloadBytes[19] << 24) | ((int32_t)payloadBytes[18] << 16) | ((int32_t)payloadBytes[17] << 8) | payloadBytes[16];
+            int32_t v6 = ((int32_t)payloadBytes[23] << 24) | ((int32_t)payloadBytes[22] << 16) | ((int32_t)payloadBytes[21] << 8) | payloadBytes[20];
+            String s1  = String(v1 / 10.0, 1);
+            String s2  = String(v2 / 10.0, 1);
+            String s3  = String(v3 / 10.0, 1);
+            String s4  = String(v4 / 10.0, 1);
+            String s5  = String(v5 / 10.0, 1);
+            String s6  = String(v6 / 10.0, 1);
+            decodedValueStr = "Today:" + s1 + "kWh | Past 7 Days:" + s2 + "kWh | Current Month:" + s3 + "kWh | Past Month:" + s4 + "kWh | Current Year:" + s5 + "kWh | Past Year:" + s6 + "kWh";
+        } else { decodedValueStr = "Error: Payload too short!"; }
+
+    } else if (decodeMode == 14) { // Time
+        if (payloadLen == 2) {
+            int16_t v1 = payloadBytes[0];
+            int16_t v2 = payloadBytes[1];
+            String s1 = String(v1);
+            String s2 = String(v2);
+            decodedValueStr = (v1 < 10 ? "0" : "") + s1 + ":" + (v2 < 10 ? "0" : "") + s2;
+        } else if (payloadLen == 3) {
+            int16_t v1 = payloadBytes[0];
+            int16_t v2 = payloadBytes[1];
+            int16_t v3 = payloadBytes[2];
+            String s1 = String(v1);
+            String s2 = String(v2);
+            String s3 = String(v3);
+            decodedValueStr =  (v1 < 10 ? "0" : "") + s1 + ":" + (v2 < 10 ? "0" : "") + s2 + ":" + (v3 < 10 ? "0" : "") + s3;
+        } else { decodedValueStr = "Error: Payload too short!"; }
+
+    } else if (decodeMode == 15) { // Hysteresis
+        if (payloadLen == 4) {
+            int16_t v1 = ((int16_t)payloadBytes[1] << 8) | payloadBytes[0];
+            int16_t v2 = ((int16_t)payloadBytes[3] << 8) | payloadBytes[2];
+            String s1 = String(v1 / 10.0, 1);
+            String s2 = String(v2 / 10.0, 1);
+            decodedValueStr = "Setpoint Switch On:" + s1 + "°C | Setpoint Switch Off:" + s2 + "°C";
+        } else { decodedValueStr = "Error: Payload too short!"; }
+
+    } else if (decodeMode == 16) { // Pressure Configuration
+        if (payloadLen == 8) {
+            int16_t v1 = ((int16_t)payloadBytes[1] << 8) | payloadBytes[0];
+            int16_t v2 = ((int16_t)payloadBytes[3] << 8) | payloadBytes[2];
+            int16_t v3 = ((int16_t)payloadBytes[5] << 8) | payloadBytes[4];
+            int16_t v4 = ((int16_t)payloadBytes[7] << 8) | payloadBytes[6];
+            String s1 = String(v1 / 10.0, 1);
+            String s2 = String(v2 / 10.0, 1);
+            String s3 = String(v3 / 10.0, 1);
+            String s4 = String(v4 / 10.0, 1);
+            decodedValueStr = "Default:" + s1 + "bar | Normal Delta:" + s2 + "bar | Maximum:" + s3 + "bar | Error Threshold:" + s4 + "bar";
+        } else { decodedValueStr = "Error: Payload too short!"; }
+
+    } else if (decodeMode == 17) { // Seasonal Coefficient
+        if (payloadLen == 9) {
+            int8_t  v1 = payloadBytes[0];
+            int32_t v2 = ((int32_t)payloadBytes[4] << 24) | ((int32_t)payloadBytes[3] << 16) | ((int32_t)payloadBytes[2] << 8) | payloadBytes[1];
+            int32_t v3 = ((int32_t)payloadBytes[8] << 24) | ((int32_t)payloadBytes[7] << 16) | ((int32_t)payloadBytes[6] << 8) | payloadBytes[5];
+            String s1 = String(v1 / 10.0, 1);
+            String s2 = String(v2 / 10.0, 1);
+            String s3 = String(v3 / 10.0, 1);
+            decodedValueStr = "Current Year:" + s1 + " | Energy Thermal:" + s2 + "kWh | Energy Electric:" + s3 + "kWh";
+        } else { decodedValueStr = "Error: Payload too short!"; }
+    
+    } else if (decodeMode == 18) { // Thermal Power
+        if (payloadLen == 4) {
+            int16_t v1 = ((int16_t)payloadBytes[1] << 8) | payloadBytes[0];
+            int16_t v2 = ((int16_t)payloadBytes[3] << 8) | payloadBytes[2];
+            String s1 = String(v1);
+            String s2 = String(v2);
+            decodedValueStr = "Power:" + s1 + "kW | Unknown:" + s2;
+        } else { decodedValueStr = "Error: Payload too short!"; }
+
+    } else if (decodeMode == 19) { // Nominal Power
+        if (payloadLen == 8) {
+            int16_t v1 = ((int16_t)payloadBytes[1] << 8) | payloadBytes[0];
+            int64_t v2 = ((int64_t)payloadBytes[7] << 40) | ((int64_t)payloadBytes[6] << 32) | ((int64_t)payloadBytes[5] << 24) | ((int64_t)payloadBytes[4] << 16) | ((int64_t)payloadBytes[3] << 8) | payloadBytes[2];
+            String s1 = String(v1);
+            String s2 = String(v2);
+            decodedValueStr = "Power:" + s1 + "W | Unknown:" + s2;
+        } else { decodedValueStr = "Error: Payload too short!"; }
+
+    } else if (decodeMode == 20) { // Temperature Offsets
+        if (payloadLen == 10) {
+            int16_t v1 = ((int16_t)payloadBytes[1] << 8) | payloadBytes[0];
+            int16_t v2 = ((int16_t)payloadBytes[3] << 8) | payloadBytes[2];
+            int16_t v3 = ((int16_t)payloadBytes[5] << 8) | payloadBytes[4];
+            int16_t v4 = ((int16_t)payloadBytes[7] << 8) | payloadBytes[6];
+            int16_t v5 = ((int16_t)payloadBytes[9] << 8) | payloadBytes[8];
+            String s1 = String(v1 / 10.0, 1);
+            String s2 = String(v2 / 10.0, 1);
+            String s3 = String(v3 / 10.0, 1);
+            String s4 = String(v4 / 10.0, 1);
+            String s5 = String(v5 / 10.0, 1);
+            decodedValueStr = "SP Inc. Room Heating:" + s1 + "°C | SP Dec. Room Cooling:" + s2 + "°C | SP Inc. DHW:" + s3 + "°C | SP Inc. Buffer Heating:" + s4 + "°C | SP Dec. Buffer Cooling:" + s5 + "°C";
+        } else { decodedValueStr = "Error: Payload too short!"; }
+    
+    } else if (decodeMode == 21) { // Pump Status
+        if (payloadLen == 5) {
+            int8_t  v1 = payloadBytes[0];
+            int32_t v2 = ((int32_t)payloadBytes[4] << 24) | ((int32_t)payloadBytes[3] << 16) | ((int32_t)payloadBytes[2] << 8) | payloadBytes[1];
+            String s1 = String(v1);
+            String s2 = String(v2);
+            decodedValueStr = "Actual:" + s1 + " | Unknown:" + s2;
+        } else { decodedValueStr = "Error: Payload too short!"; }
+
+    } else if (decodeMode == 22) { // Set Temperature
+        if (payloadLen == 4) {
+            int16_t v1 = ((int16_t)payloadBytes[1] << 8) | payloadBytes[0];
+            int16_t v2 = ((int16_t)payloadBytes[3] << 8) | payloadBytes[2];
+            String s1 = String(v1 / 10.0, 1);
+            String s2 = String(v2 / 10.0, 1);
+            decodedValueStr = "Minimum:" + s1 + "°C | Maximum:" + s2 + "°C";
+        } else { decodedValueStr = "Error: Payload too short!"; }
+
+    } else if (decodeMode == 50) { // Utf8
         if (payloadLen >= 1) {
             char cString[payloadLen + 1]; 
             for (int i = 0; i < payloadLen; i++) {
                 cString[i] = (char)payloadBytes[i];
             }
             cString[payloadLen] = '\0';
-            decodedValueStr = "Text: " + String(cString);
+            decodedValueStr = String(cString);
         } else { decodedValueStr = "Error: Payload too short!"; }
-    } else if (decodeMode == 13) { // Int8
+
+    } else if (decodeMode == 51) { // Int8
         if (payloadLen >= 1) {
             int16_t v1 = payloadBytes[0];
             String s1 = String(v1);
             decodedValueStr = s1 + " [%, ENUM, dBm, min, cnt, mbar]";
         } else { decodedValueStr = "Error: Payload too short!"; }
-    } else if (decodeMode == 14) { // Int16
+
+    } else if (decodeMode == 52) { // Int16
         if (payloadLen >= 2) {
             int16_t v1 = ((int16_t)payloadBytes[1] << 8) | payloadBytes[0];
             String s1 = String(v1);
             decodedValueStr = s1 + " [°C, bar, hPas, l/h, h, rps, rpm, µA, mA, Wh, W, kW, VA, m3]";
         } else { decodedValueStr = "Error: Payload too short!"; }
-    } else if (decodeMode == 15) { // Int32
+
+    } else if (decodeMode == 53) { // Int32
         if (payloadLen >= 4) {
             int32_t v1 = ((int32_t)payloadBytes[3] << 24) | ((int32_t)payloadBytes[2] << 16) | ((int32_t)payloadBytes[1] << 8) | payloadBytes[0];
             String s1 = String(v1);
             decodedValueStr = s1 + " [W, kWh, V, A]";
         } else { decodedValueStr = "Error: Payload too short!"; }
-    } else if (decodeMode == 16) { // Float32
+
+    } else if (decodeMode == 54) { // Int64
+        if (payloadLen >= 8) {
+            int64_t v1 = ((int64_t)payloadBytes[7] << 56) | ((int64_t)payloadBytes[6] << 48) | ((int64_t)payloadBytes[5] << 40) | ((int64_t)payloadBytes[4] << 32) | ((int64_t)payloadBytes[3] << 24) | ((int64_t)payloadBytes[2] << 16) | ((int64_t)payloadBytes[1] << 8) | payloadBytes[0];
+            String s1 = String(v1);
+            decodedValueStr = s1 + " [...]";
+        } else { decodedValueStr = "Error: Payload too short!"; }
+
+    } else if (decodeMode == 55) { // Float32
         if (payloadLen >= 4) {
             FloatByteConverter converter;
             converter.b[0] = payloadBytes[0]; // LSB
@@ -598,7 +794,10 @@ void setup() {
         String json = "{\"rx_did\":\"" + displayDid + "\",\"rx_payload\":\"" + lastRxPayload + "\",\"rx_decoded\":\"" + decodedValueStr + "\",\"is_scanning\":" + String(isScanning ? "true" : "false") + ",\"scan_progress\":" + String(progressVal) + ",\"max_progress\":" + String(maxVal) + ",\"has_scan_results\":" + String(hasResults ? "true" : "false") + ",\"log\":\"" + webLog + "\"}";
         request->send(200, "application/json", json);
     });
+
     ElegantOTA.begin(&server); server.begin(); logToWeb("Commander UI ready.");
+
+    setupWatchdog();
 }
 
 void checkForResponse() {
@@ -771,6 +970,7 @@ void checkForResponse() {
 }
 
 void loop() {
+    esp_task_wdt_reset();
     ElegantOTA.loop();
     checkForResponse();
     scanDIDs(); 
