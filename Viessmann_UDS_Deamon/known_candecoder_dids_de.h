@@ -46,10 +46,10 @@ PressureWithStatus compressorOutletPressureSensor(325, "Kompressor Auslassdrucks
 Pump centralHeatingPump(            381, "Heizungskreispumpe");
 Pump domesticHotWaterShiftLoadPump(1290, "Warmwasser Schichtladepumpe");
 
-CanInt8 electronicExpansionValveOneTargetPositionPercent( 388, "elektronisches Expansionsventil eins Zielposition Prozent");
-CanInt8 electronicExpansionValveOneCurrentPositionPercent(389, "elektronisches Expansionsventil eins aktuelle Position Prozent");
-CanInt8 electronicExpansionValveTwoTargetPositionPercent( 390, "elektronisches Expansionsventil zwei Zielposition Prozent");
-CanInt8 electronicExpansionValveTwoCurrentPositionPercent(391, "elektronisches Expansionsventil zwei aktuelle Position Prozent");
+CanInt8 electronicExpansionValveOneTargetPositionPercent( 388, "elektronisches Expansionsventil eins Zielposition",      "", "%");
+CanInt8 electronicExpansionValveOneCurrentPositionPercent(389, "elektronisches Expansionsventil eins aktuelle Position", "", "%");
+CanInt8 electronicExpansionValveTwoTargetPositionPercent( 390, "elektronisches Expansionsventil zwei Zielposition",      "", "%");
+CanInt8 electronicExpansionValveTwoCurrentPositionPercent(391, "elektronisches Expansionsventil zwei aktuelle Position", "", "%");
 CanInt8 legionellaProtectionWeekday(                      876, "Legionellenschutz Wochentag");
 CanInt8 legionellaProtectionLastSuccessfulWeekday(        878, "Legionellenschutz letzter erfolgreicher Wochentag");
 CanInt8 centralHeatingPumpMode(                          1240, "Heizungskreispumpe Modus");
@@ -61,23 +61,23 @@ CanInt8 primaryCircuitFanTwo(                            1776, "Primärkreis Ven
 CanInt8 solarPumpConfigurationSelection(                 1819, "Solarpumpen Konfiguration Auswahl");
 CanInt8 refrigerationCircuitStatus(                      2259, "Kältemittelkreis Status");
 CanInt8 domesticHotWaterStatus(                          2320, "Warmwasser Status");
-CanInt8 compressorSetpointPercent(                       2345, "Kompressor Sollwert Prozent");
-CanInt8 compressorSpeedPercent(                          2346, "Kompressor Drehzahl Prozent");
+CanInt8 compressorSetpointPercent(                       2345, "Kompressor Sollwert",                                    "", "%");
+CanInt8 compressorSpeedPercent(                          2346, "Kompressor Drehzahl",                                    "", "%");
 CanInt8 energyManagmentSystemResultingControlState(      2350, "Energiemanagementsystem resultierender Regelungsstatus");
 CanInt8 centralHeatingPumpType(                          2498, "Heizungskreispumpe Typ");
 CanInt8 heatPumpState(                                   2557, "Wärmepumpen Status");
-CanInt8 noiseReductionMode(                              2634, "Flüsterbetrieb Modus"); // 22:00 <-> 06:00 == 1 
+CanInt8 noiseReductionMode(                              2634, "Flüsterbetrieb Modus");                                  // 22:00 <-> 06:00 == 1 
 CanInt8 domesticHotWaterEfficiencyMode(                  3029, "Warmwasser Effizienzmodus");
 CanInt8 domesticHotWaterSensorForDemand(                 3069, "Warmwassersensor für Anforderung");
 CanInt8 bufferTargetOperationMode(                       3070, "Puffer Zielbetriebsmodus");
 
 CanInt16 domesticHotWaterPumpPostRunTime(            534, "Warmwasserpumpe Nachlaufzeit");
-CanInt16 desiredThermalEnergyDefrost(               2256, "gewünschte thermische Energie für Abtauung"); // "Wh"
+CanInt16 desiredThermalEnergyDefrost(               2256, "gewünschte thermische Energie für Abtauung", "", "Wh");
 CanInt16 electricalHeaterConfiguration(             2340, "elektrische Heizstab Konfiguration");
-CanInt16 compressorSpeedRps(                        2569, "Kompressor Drehzahl");
+CanInt16 compressorSpeedRps(                        2569, "Kompressor Drehzahl",                        "", "rps");
 CanInt16 compressorOnTimer(                         2573, "Kompressor Einschaltverzögerung");
 CanInt16 refrigerationCycleApplicationState(        2575, "Kältekreislauf Anwendungsstatus");
-CanInt16 compressorSetpointRps(                     2580, "Kompressor Sollwert");
+CanInt16 compressorSetpointRps(                     2580, "Kompressor Sollwert",                        "", "rps");
 CanInt16 compressorOffTimer(                        2582, "Kompressor Ausschaltverzögerung");
 CanInt16 digitalOutputCooling(                      2586, "digitaler Ausgang Kühlung");
 CanInt16 secondaryHeatExchangerMinimumVolumeFlow(   2843, "Sekundärwärmetauscher minimaler Volumenstrom");
@@ -85,16 +85,16 @@ CanInt16 domesticHotWaterEfficiencyModeAvailability(3030, "Warmwasser Effizienzm
 CanInt16 primaryEnergyFactorElectricity(            3032, "Primärenergiefaktor Strom");
 
 CanInt32 coefficientOfPerformanceConfiguration(              2341, "Leistungszahl Konfiguration");
-CanInt32 nominalThermalCapacityHeating(                      2342, "Nennwärmeleistung Heizen");                                // "W"
-CanInt32 nominalThermalCapacityCooling(                      2343, "Nennkälteleistung Kühlen");                                // "W"
-CanInt32 currentElectricalPowerConsumptionRefrigerantCircuit(2486, "aktuelle elektrische Leistungsaufnahme Kältemittelkreis"); // "W"
-CanInt32 currentElectricalPowerConsumptionElectricHeater(    2487, "aktuelle elektrische Leistungsaufnahme Heizstab");         // "W"
-CanInt32 currentElectricalPowerConsumptionSystem(            2488, "aktuelle elektrische Leistungsaufnahme System");           // "W"
-CanInt32 currentThermalCapacityRefrigerantCircuit(           2494, "aktuelle thermische Leistung Kältemittelkreis");           // "W"
-CanInt32 currentThermalCapacityElectricHeater(               2495, "aktuelle thermische Leistung Heizstab");                   // "W"
-CanInt32 currentThermalCapacitySystem(                       2496, "aktuelle thermische Leistung System");                     // "W"
-CanInt32 nominalThermalCapacityIndoorUnit(                   2611, "Nennwärmeleistung Inneneinheit");                          // "W"
-CanInt32 maximumPowerElectricalHeater(                       2626, "maximale Leistung elektrischer Heizstab");                 // "W"
+CanInt32 nominalThermalCapacityHeating(                      2342, "Nennwärmeleistung Heizen",                                "", "W");
+CanInt32 nominalThermalCapacityCooling(                      2343, "Nennkälteleistung Kühlen",                                "", "W");
+CanInt32 currentElectricalPowerConsumptionRefrigerantCircuit(2486, "aktuelle elektrische Leistungsaufnahme Kältemittelkreis", "", "W");
+CanInt32 currentElectricalPowerConsumptionElectricHeater(    2487, "aktuelle elektrische Leistungsaufnahme Heizstab",         "", "W");
+CanInt32 currentElectricalPowerConsumptionSystem(            2488, "aktuelle elektrische Leistungsaufnahme System",           "", "W");
+CanInt32 currentThermalCapacityRefrigerantCircuit(           2494, "aktuelle thermische Leistung Kältemittelkreis",           "", "W");
+CanInt32 currentThermalCapacityElectricHeater(               2495, "aktuelle thermische Leistung Heizstab",                   "", "W");
+CanInt32 currentThermalCapacitySystem(                       2496, "aktuelle thermische Leistung System",                     "", "W");
+CanInt32 nominalThermalCapacityIndoorUnit(                   2611, "Nennwärmeleistung Inneneinheit",                          "", "W");
+CanInt32 maximumPowerElectricalHeater(                       2626, "maximale Leistung elektrischer Heizstab",                 "", "W");
 CanInt32 desiredThermalCapacity(                             2629, "gewünschte thermische Leistung");
 CanInt32 currentElectricalSystemPowerSetpoint(               2934, "aktueller elektrischer Systemleistung Sollwert");
 CanInt32 domesticHotWaterHighDemandDetection(                3066, "Warmwasser hoher Bedarf Erkennung");

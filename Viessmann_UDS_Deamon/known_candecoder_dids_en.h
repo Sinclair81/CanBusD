@@ -46,10 +46,10 @@ PressureWithStatus compressorOutletPressureSensor(325, "compressor outlet pressu
 Pump centralHeatingPump(            381, "central heating pump");
 Pump domesticHotWaterShiftLoadPump(1290, "domestic hot water shift load pump");
 
-CanInt8 electronicExpansionValveOneTargetPositionPercent( 388, "electronic expansion valve one target position percent");
-CanInt8 electronicExpansionValveOneCurrentPositionPercent(389, "electronic expansion valve one current position percent");
-CanInt8 electronicExpansionValveTwoTargetPositionPercent( 390, "electronic expansion valve two target position percent");
-CanInt8 electronicExpansionValveTwoCurrentPositionPercent(391, "electronic expansion valve two current position percent");
+CanInt8 electronicExpansionValveOneTargetPositionPercent( 388, "electronic expansion valve one target position percent");  // %
+CanInt8 electronicExpansionValveOneCurrentPositionPercent(389, "electronic expansion valve one current position percent"); // %
+CanInt8 electronicExpansionValveTwoTargetPositionPercent( 390, "electronic expansion valve two target position percent");  // %
+CanInt8 electronicExpansionValveTwoCurrentPositionPercent(391, "electronic expansion valve two current position percent"); // %
 CanInt8 legionellaProtectionWeekday(                      876, "legionella protection weekday");
 CanInt8 legionellaProtectionLastSuccessfulWeekday(        878, "legionella protection last successful weekday");
 CanInt8 centralHeatingPumpMode(                          1240, "central heating pump mode");
@@ -61,23 +61,23 @@ CanInt8 primaryCircuitFanTwo(                            1776, "primary circuit 
 CanInt8 solarPumpConfigurationSelection(                 1819, "solar pump configuration selection");
 CanInt8 refrigerationCircuitStatus(                      2259, "refrigeration circuit status");
 CanInt8 domesticHotWaterStatus(                          2320, "domestic hot water status");
-CanInt8 compressorSetpointPercent(                       2345, "compressor setpoint percent");
-CanInt8 compressorSpeedPercent(                          2346, "compressor speed percent");
+CanInt8 compressorSetpointPercent(                       2345, "compressor setpoint percent");                             // %
+CanInt8 compressorSpeedPercent(                          2346, "compressor speed percent");                                // %
 CanInt8 energyManagmentSystemResultingControlState(      2350, "energy managment system resulting control state");
 CanInt8 centralHeatingPumpType(                          2498, "central heating pump type");
 CanInt8 heatPumpState(                                   2557, "heat pump state");
-CanInt8 noiseReductionMode(                              2634, "noise reduction mode"); // 22:00 <-> 06:00 == 1 
+CanInt8 noiseReductionMode(                              2634, "noise reduction mode");                                    // 22:00 <-> 06:00 == 1 
 CanInt8 domesticHotWaterEfficiencyMode(                  3029, "domestic hot water efficiency mode");
 CanInt8 domesticHotWaterSensorForDemand(                 3069, "domestic hot water sensor for demand");
 CanInt8 bufferTargetOperationMode(                       3070, "buffer target operation mode");
 
 CanInt16 domesticHotWaterPumpPostRunTime(            534, "domestic hot water pump post run time");
-CanInt16 desiredThermalEnergyDefrost(               2256, "desired thermal energy defrost"); // "Wh"
+CanInt16 desiredThermalEnergyDefrost(               2256, "desired thermal energy defrost");                  // "Wh"
 CanInt16 electricalHeaterConfiguration(             2340, "electrical heater configuration");
-CanInt16 compressorSpeedRps(                        2569, "compressor speed");
+CanInt16 compressorSpeedRps(                        2569, "compressor speed");                                // rps
 CanInt16 compressorOnTimer(                         2573, "compressor on timer");
 CanInt16 refrigerationCycleApplicationState(        2575, "refrigeration cycle application state");
-CanInt16 compressorSetpointRps(                     2580, "compressor setpoint");
+CanInt16 compressorSetpointRps(                     2580, "compressor setpoint");                             // rps
 CanInt16 compressorOffTimer(                        2582, "compressor off timer");
 CanInt16 digitalOutputCooling(                      2586, "digital output cooling");
 CanInt16 secondaryHeatExchangerMinimumVolumeFlow(   2843, "secondary heat exchanger minimum volume flow");

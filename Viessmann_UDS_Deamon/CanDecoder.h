@@ -613,10 +613,12 @@ class CanInt8 : public CanObject {
 private:
     uint32_t _did;
     String _name;
+    String _title;
+    String _unit;
     uint8_t _byte = 0;
 
 public:
-    CanInt8(uint32_t did, const String& name);
+    CanInt8(uint32_t did, const String& name, const String& title = "Int8", const String& unit = " [%, ENUM, dBm, min, cnt, mbar]");
     void parse(const uint8_t* busBytes) override;
     int8_t getInt() const;
     uint32_t getDid() const override { return _did; }
@@ -629,10 +631,12 @@ class CanInt16 : public CanObject {
 private:
     uint32_t _did;
     String _name;
+    String _title;
+    String _unit;
     uint8_t _rawBytes[2] = {0};
 
 public:
-    CanInt16(uint32_t did, const String& name);
+    CanInt16(uint32_t did, const String& name, const String& title = "Int16", const String& unit = " [°C, bar, hPas, l/h, h, rps, rpm, µA, mA, Wh, W, kW, VA, m3]");
     void parse(const uint8_t* busBytes) override;
     int16_t getInt() const;
     uint32_t getDid() const override { return _did; }
@@ -645,10 +649,12 @@ class CanInt32 : public CanObject {
 private:
     uint32_t _did;
     String _name;
+    String _title;
+    String _unit;
     uint8_t _rawBytes[4] = {0};
 
 public:
-    CanInt32(uint32_t did, const String& name);
+    CanInt32(uint32_t did, const String& name, const String& title = "Int32", const String& unit = " [W, kWh, V, A]");
     void parse(const uint8_t* busBytes) override;
     int32_t getInt() const;
     uint32_t getDid() const override { return _did; }
@@ -661,10 +667,12 @@ class CanFloat32 : public CanObject {
 private:
     uint32_t _did;
     String _name;
+    String _title;
+    String _unit;
     uint8_t _rawBytes[4] = {0};
 
 public:
-    CanFloat32(uint32_t did, const String& name);
+    CanFloat32(uint32_t did, const String& name, const String& title = "Float32", const String& unit = " [Ah, %]");
     void parse(const uint8_t* busBytes) override;
     float getFloat() const;
     uint32_t getDid() const override { return _did; }

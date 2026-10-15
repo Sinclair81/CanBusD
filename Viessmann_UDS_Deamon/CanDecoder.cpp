@@ -1091,7 +1091,7 @@ size_t Utf8String::getByteLength() const {
 
 // ======================================== Class: CanInt8 ========================================
 
-CanInt8::CanInt8(uint32_t did, const String& name) : _did(did), _name(name) {
+CanInt8::CanInt8(uint32_t did, const String& name, const String& title, const String& unit) : _did(did), _name(name), _title(title), _unit(unit) {
 }
 
 void CanInt8::parse(const uint8_t* busBytes) {
@@ -1104,13 +1104,13 @@ int8_t CanInt8::getInt() const {
 
 String CanInt8::getFormattedString() const {
     String output = "";
-    output += "Int8:" + String(getInt()) + " [%, ENUM, dBm, min, cnt, mbar]";
+    output += _title + (_title != "" ? ":" : "") + String(getInt()) + _unit;
     return output;
 }
 
 // ======================================== Class: CanInt16 ========================================
 
-CanInt16::CanInt16(uint32_t did, const String& name) : _did(did), _name(name) {
+CanInt16::CanInt16(uint32_t did, const String& name, const String& title, const String& unit) : _did(did), _name(name), _title(title), _unit(unit) {
 }
 
 void CanInt16::parse(const uint8_t* busBytes) {
@@ -1124,13 +1124,13 @@ int16_t CanInt16::getInt() const {
 
 String CanInt16::getFormattedString() const {
     String output = "";
-    output += "Int16:" + String(getInt()) + " [°C, bar, hPas, l/h, h, rps, rpm, µA, mA, Wh, W, kW, VA, m3]";
+    output += _title + (_title != "" ? ":" : "") + String(getInt()) + _unit;
     return output;
 }
 
 // ======================================== Class: CanInt32 ========================================
 
-CanInt32::CanInt32(uint32_t did, const String& name) : _did(did), _name(name) {
+CanInt32::CanInt32(uint32_t did, const String& name, const String& title, const String& unit) : _did(did), _name(name), _title(title), _unit(unit) {
 }
 
 void CanInt32::parse(const uint8_t* busBytes) {
@@ -1146,13 +1146,13 @@ int32_t CanInt32::getInt() const {
 
 String CanInt32::getFormattedString() const {
     String output = "";
-    output += "Int32:" + String(getInt()) + " [W, kWh, V, A]";
+    output += _title + (_title != "" ? ":" : "") + String(getInt()) + _unit;
     return output;
 }
 
 // ======================================== Class: CanFloat32 ========================================
 
-CanFloat32::CanFloat32(uint32_t did, const String& name) : _did(did), _name(name) {
+CanFloat32::CanFloat32(uint32_t did, const String& name, const String& title, const String& unit) : _did(did), _name(name), _title(title), _unit(unit) {
 }
 
 void CanFloat32::parse(const uint8_t* busBytes) {
@@ -1168,6 +1168,6 @@ float CanFloat32::getFloat() const {
 
 String CanFloat32::getFormattedString() const {
     String output = "";
-    output += "Float32:" + String(getFloat(), 2) + " [Ah, %]";
+    output += _title + (_title != "" ? ":" : "") + String(getFloat(), 2) + _unit;
     return output;
 }
