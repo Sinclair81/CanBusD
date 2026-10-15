@@ -49,19 +49,30 @@ const char* password = SECRET_PASSWORD;
 #define CAN_REQUEST_ID  0x680
 #define CAN_RESPONSE_ID 0x690
 
-// Registrierte Variablen zur zyklischen Abfrage
+// Registered variables for cyclical polling
+Utf8String               centralHeatingOneCircuitName(       627, "Heizkreis 1 Name");
+SingleTemp               domesticHotWaterTemperatureSetpoint(396, "Warmwasser Solltemperatur");
+MultiTempWithStatus      outsideTemperatureSensor(           274, "Außentemperatursensor");
+Pump                     centralHeatingPump(                 381, "Heizungskreispumpe");
+MultiPressureWithStatus  waterPressureSensor(                318, "Wasserdrucksensor");
+Hysteresis               domesticHotWaterHysteresis(        1085, "Warmwasser Hysterese");
 
-Utf8String          identification(  377, "ViessmannIdentificationNumber");
-SingleTemp          hotWaterSetpoint(396, "DomesticHotWaterTemperatureSetpoint");
-MultiTempWithStatus outsideSensor(   274, "OutsideTemperatureSensor");
-Pump                heatingPump(     381, "CentralHeatingPump");
+// Here, we group all objects together as pointers in an array.
+const uint8_t NUM_OBJECTS = 6;
+CanObject* canObjects[NUM_OBJECTS] = {
+    &centralHeatingOneCircuitName,
+    &domesticHotWaterTemperatureSetpoint,
+    &outsideTemperatureSensor,
+    &centralHeatingPump,
+    &waterPressureSensor,
+    &domesticHotWaterHysteresis
+};
 
-// State-Machine Variablen für den blockierungsfreien UDS-Ablauf
 unsigned long lastQueryTime = 0;
-const unsigned long queryInterval = 60000; // 1 Minute Gesamtintervall
+const unsigned long queryInterval = 60000;
 unsigned long lastStepTime = 0;
-const unsigned long stepInterval = 150;    // Sichere 150ms Pause zwischen den DIDs OHNE Blockade
-uint8_t currentQueryStep = 0;             // Aktueller Schritt im Ablauf (0 = ID, 1 = Setpoint, 2 = Outside, 3 = Pump, 4 = Warten)
+const unsigned long stepInterval = 150;
+uint8_t currentQueryStep = 0;
 
 bool isWaitingForConsecutive = false;
 uint16_t activeMultiFrameDid = 0;
@@ -71,7 +82,7 @@ uint8_t multiFrameBuffer[256] = {0};
 
 AsyncWebServer server(80);
 
-// HTML & CSS für die schlanke Tabellen-Ansicht
+// HTML & CSS for a streamlined table view
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html>
@@ -96,35 +107,57 @@ const char index_html[] PROGMEM = R"rawliteral(
     <script>
         function updateData() {
             fetch('/data').then(response => response.json()).then(data => {
+                let tbody = document.getElementById('data-table');
+                
                 data.forEach(item => {
                     let row = document.getElementById('did_' + item.did);
-                    if(row) {
-                        row.querySelector('.val').innerText = item.value;
+                    
+                    // If the row for this sensor does not yet exist, we create it dynamically.
+                    if(!row) {
+                        row = document.createElement('tr');
+                        row.id = 'did_' + item.did;
+                        
+                        let tdDid = document.createElement('td');
+                        tdDid.innerText = item.did;
+                        
+                        let tdName = document.createElement('td');
+                        tdName.innerText = item.name;
+                        
+                        let tdVal = document.createElement('td');
+                        tdVal.className = 'val';
+                        tdVal.innerText = '---';
+                        
+                        row.appendChild(tdDid);
+                        row.appendChild(tdName);
+                        row.appendChild(tdVal);
+                        tbody.appendChild(row);
                     }
+                    
+                    row.querySelector('.val').innerText = item.value;
                 });
             });
         }
-        setInterval(updateData, 2000); // UI alle 2 Sekunden aktualisieren
+        window.onload = function() {
+            updateData();
+            setInterval(updateData, 2000); // Update UI every 2 seconds
+        };
     </script>
 </head>
 <body>
     <div class="container">
         <a href="/update" class="btn-ota">🚀 OTA Update</a>
         <h1>Viessmann UDS Daemon</h1>
-        <p>Zyklische CAN-Bus Telemetrieabfrage (Intervall: 1 Minute)</p>
+        <p>Cyclic CAN bus telemetry polling (interval: 1 minute)</p>
         <table>
             <thead>
                 <tr>
                     <th>DID</th>
                     <th>Name</th>
-                    <th>Aktueller Wert</th>
+                    <th>Current value</th>
                 </tr>
             </thead>
-            <tbody>
-                <tr id="did_377"><td>377</td><td>ViessmannIdentificationNumber</td><td class="val">---</td></tr>
-                <tr id="did_396"><td>396</td><td>DomesticHotWaterTemperatureSetpoint</td><td class="val">---</td></tr>
-                <tr id="did_274"><td>274</td><td>OutsideTemperatureSensor</td><td class="val">---</td></tr>
-                <tr id="did_381"><td>381</td><td>CentralHeatingPump</td><td class="val">---</td></tr>
+            <tbody id="data-table">
+                <!-- Populated fully automatically via JavaScript -->
             </tbody>
         </table>
     </div>
@@ -142,14 +175,14 @@ void setupWatchdog() {
     esp_task_wdt_add(NULL); 
 }
 
-// Sendet eine UDS-Abfrage für eine bestimmte DID an den CAN-Bus
+// Sends a UDS request for a specific DID to the CAN bus
 void sendUdsRequest(uint16_t did) {
     twai_message_t tx_msg;
     tx_msg.identifier = CAN_REQUEST_ID;
     tx_msg.extd = 0;
     tx_msg.rtr = 0;
     tx_msg.data_length_code = 8;
-    tx_msg.data[0] = 0x03; // PCI-Byte: Länge der UDS-Daten (3 Bytes folgend)
+    tx_msg.data[0] = 0x03; // PCI byte: Length of the UDS data (3 bytes follow)
     tx_msg.data[1] = 0x22; // UDS Service: ReadDataByIdentifier
     tx_msg.data[2] = (uint8_t)(did >> 8);   // DID High Byte
     tx_msg.data[3] = (uint8_t)(did & 0xFF);  // DID Low Byte
@@ -158,7 +191,7 @@ void sendUdsRequest(uint16_t did) {
     twai_transmit(&tx_msg, pdMS_TO_TICKS(10));
 }
 
-// Sendet den ISO-TP Flow Control Frame, um dem Heizkessel zu sagen, er darf Folgeframes schicken
+// Sends the ISO-TP Flow Control frame to inform the boiler that it may send subsequent frames.
 void sendFlowControl() {
     twai_message_t fc_msg;
     fc_msg.identifier = CAN_REQUEST_ID;
@@ -166,39 +199,39 @@ void sendFlowControl() {
     fc_msg.rtr = 0;
     fc_msg.data_length_code = 8;
     fc_msg.data[0] = 0x30; // Flow Control Frame (Clear To Send)
-    fc_msg.data[1] = 0x00; // Block Size = 0 (Sende alles)
+    fc_msg.data[1] = 0x00; // Block Size = 0 (Send everything)
     fc_msg.data[2] = 0x00; // Separation Time = 0ms
     for(int i = 3; i < 8; i++) fc_msg.data[i] = 0x00;
     
     twai_transmit(&fc_msg, pdMS_TO_TICKS(10));
 }
 
-// Ordnet empfangene Rohdaten anhand der DID der passenden Klasseninstanz zu
+// Assigns received raw data to the appropriate class instance based on the DID
 void routePayloadToDecoder(uint16_t did, const uint8_t* payload, size_t length) {
-    switch (did) {
-        case 377: identification.parse(payload, length); break;
-        case 396: hotWaterSetpoint.parse(payload); break;
-        case 274: outsideSensor.parse(payload); break;
-        case 381: heatingPump.parse(payload); break;
+    for (uint8_t i = 0; i < NUM_OBJECTS; i++) {
+        if (canObjects[i]->getDid() == did) {
+            canObjects[i]->parse(payload, length);
+            break;
+        }
     }
 }
 
-// Verarbeitet eintreffende CAN-Bus Frames (ISO-TP Transportprotokoll)
+// Processes incoming CAN bus frames (ISO-TP transport protocol)
 void checkForResponse() {
     twai_message_t rx_msg;
     if (twai_receive(&rx_msg, pdMS_TO_TICKS(1)) == ESP_OK) {
         if (rx_msg.identifier == CAN_RESPONSE_ID) {
             
-            // MULTI-FRAME: ERSTER FRAME (0x10) -> Kessel kündigt lange Antwort an
+            // MULTI-FRAME: FIRST FRAME (0x10) -> Boiler announces a long response
             if ((rx_msg.data[0] & 0xF0) == 0x10 && rx_msg.data[2] == 0x62) {
                 uint16_t totalLen = ((uint16_t)(rx_msg.data[0] & 0x0F) << 8) | rx_msg.data[1];
                 activeMultiFrameDid = ((uint16_t)rx_msg.data[3] << 8) | rx_msg.data[4];
                 
-                multiFramePayloadByteMax = totalLen - 3; // Gesamtlänge minus Service(1B) und DID(2B)
+                multiFramePayloadByteMax = totalLen - 3; // Total length minus Service (1B) and DID (2B)
                 multiFramePayloadByteCount = 0;
                 isWaitingForConsecutive = true;
                 
-                // Erste 3 Bytes der Nutzdaten aus dem First-Frame sichern (Index 5, 6, 7)
+                // Save the first 3 bytes of the payload from the first frame (indices 5, 6, 7)
                 for (int i = 5; i < 8; i++) {
                     if (multiFramePayloadByteCount < multiFramePayloadByteMax) {
                         multiFrameBuffer[multiFramePayloadByteCount++] = rx_msg.data[i];
@@ -207,21 +240,21 @@ void checkForResponse() {
                 sendFlowControl(); 
             }
             
-            // MULTI-FRAME: FOLGEFRAMES (0x20 bis 0x2F)
+            // MULTI-FRAME: SEQUENTIAL FRAMES (0x20 to 0x2F)
             else if ((rx_msg.data[0] & 0xF0) == 0x20 && isWaitingForConsecutive) {
                 for (int i = 1; i < 8; i++) {
                     if (multiFramePayloadByteCount < multiFramePayloadByteMax) {
                         multiFrameBuffer[multiFramePayloadByteCount++] = rx_msg.data[i];
                     }
                 }
-                // Wenn alle erwarteten Bytes da sind, decodieren
+                // Once all expected bytes have arrived, decode them
                 if (multiFramePayloadByteCount >= multiFramePayloadByteMax) {
                     isWaitingForConsecutive = false;
                     routePayloadToDecoder(activeMultiFrameDid, multiFrameBuffer, multiFramePayloadByteCount);
                 }
             }
             
-            // SINGLE-FRAME (0x0X): Antwort passt komplett in ein Datenframe
+            // SINGLE-FRAME (0x0X): Response fits entirely within a single data frame
             else if (rx_msg.data[1] == 0x62) {
                 isWaitingForConsecutive = false; 
                 uint8_t framePayloadByteMax = rx_msg.data[0] - 3; 
@@ -236,7 +269,7 @@ void checkForResponse() {
                 routePayloadToDecoder(parsedDid, singleFrameBuffer, framePayloadByteMax);
             }
             
-            // UDS FEHLER FRAME ODER ABBRUCH
+            // UDS ERROR FRAME OR ABORT
             else if (rx_msg.data[1] == 0x7F) {
                 isWaitingForConsecutive = false;
             }
@@ -244,73 +277,62 @@ void checkForResponse() {
     }
 }
 
-// Blockierungsfreie State-Machine zur Taktung der CAN-Abfragen
+// Non-blocking state machine for scheduling CAN requests
 void handleDaemonTimer() {
     unsigned long currentMillis = millis();
 
-    // 1. Prüfen, ob die 1 Minute Wartezeit um ist, um die Kette neu zu starten
-    if (currentQueryStep == 4) {
+    if (currentQueryStep >= NUM_OBJECTS) {
         if (currentMillis - lastQueryTime >= queryInterval) {
             lastQueryTime = currentMillis;
-            currentQueryStep = 0; // Zurück zu Schritt 0 (Identifikation starten)
+            currentQueryStep = 0; // Zurück zu Schritt 0
             lastStepTime = currentMillis;
         }
-        return; // Im Warteschritt tun wir sonst nichts
+        return;
     }
 
-    // 2. Die einzelnen Abfrage-Schritte im Abstand von 'stepInterval' (150ms) abarbeiten
     if (currentMillis - lastStepTime >= stepInterval) {
         lastStepTime = currentMillis;
 
-        switch (currentQueryStep) {
-            case 0:
-                sendUdsRequest(identification.getDid());
-                currentQueryStep = 1;
-                break;
-            case 1:
-                sendUdsRequest(hotWaterSetpoint.getDid());
-                currentQueryStep = 2;
-                break;
-            case 2:
-                sendUdsRequest(outsideSensor.getDid());
-                currentQueryStep = 3;
-                break;
-            case 3:
-                sendUdsRequest(heatingPump.getDid());
-                currentQueryStep = 4; // Kette beendet, in den Wartemodus wechseln
-                break;
-        }
+        sendUdsRequest(canObjects[currentQueryStep]->getDid());
+        currentQueryStep++;
     }
 }
 
+
 void setup() {
-    // Wi-Fi Verbindung aufbauen
+    // Establish a Wi-Fi connection
     WiFi.mode(WIFI_STA); 
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) { delay(500); }
     
-    // TWAI/CAN-Treiber für ESP32-S3 initialisieren
+    // Initialize TWAI/CAN driver for ESP32-S3
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_PIN, RX_PIN, TWAI_MODE_NORMAL);
     twai_timing_config_t t_config = TWAI_TIMING_CONFIG_250KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
     twai_driver_install(&g_config, &t_config, &f_config); 
     twai_start();
 
-    // Zeitstempel initialisieren, damit die Abfrage sofort beim Start loslegt
+    // Initialize the timestamp so that the query begins immediately upon startup
     lastQueryTime = millis() - queryInterval; 
 
-    // Webserver Endpunkte einrichten
+    // Set up web server endpoints
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){ 
         request->send(200, "text/html; charset=UTF-8", String(index_html)); 
     });
     
-    // JSON-Endpunkt liefert die aktuellen Werte für das Web-UI Frontend
+    // JSON endpoint provides the current data, including names, for the dynamic web UI
     server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request){
         String json = "[";
-        json += "{\"did\":" + String(identification.getDid())   + ",\"value\":\"" + String(identification.getString()) + "\"},";
-        json += "{\"did\":" + String(hotWaterSetpoint.getDid()) + ",\"value\":\"" + hotWaterSetpoint.getFormattedString() + "\"},";
-        json += "{\"did\":" + String(outsideSensor.getDid())    + ",\"value\":\"" + outsideSensor.getFormattedString() + "\"},";
-        json += "{\"did\":" + String(heatingPump.getDid())      + ",\"value\":\"" + heatingPump.getFormattedString() + "\"}";
+        for (uint8_t i = 0; i < NUM_OBJECTS; i++) {
+            json += "{";
+            json += "\"did\":"    + String(canObjects[i]->getDid()) + ",";
+            json += "\"name\":\""  + canObjects[i]->getName()        + "\",";
+            json += "\"value\":\"" + canObjects[i]->getFormattedString() + "\"";
+            json += "}";
+            if (i < NUM_OBJECTS - 1) {
+                json += ",";
+            }
+        }
         json += "]";
         request->send(200, "application/json", json);
     });
@@ -324,7 +346,7 @@ void setup() {
 void loop() {
     esp_task_wdt_reset();
     ElegantOTA.loop();
-    checkForResponse();  // Läuft jetzt durchgehend mit maximaler Geschwindigkeit
-    handleDaemonTimer(); // Schaltet ohne Delays die Abfragen sequenziell durch
+    checkForResponse();
+    handleDaemonTimer();
     yield();
 }

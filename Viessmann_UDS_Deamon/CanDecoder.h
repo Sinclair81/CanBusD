@@ -3,8 +3,20 @@
 
 #include <Arduino.h>
 
+// ======================================== Class: CanObject ========================================
+class CanObject {
+public:
+    virtual ~CanObject() {}
+    virtual uint32_t getDid() const = 0;
+    virtual String getName() const = 0;
+    virtual String getFormattedString() const = 0;
+    
+    virtual void parse(const uint8_t* busBytes) {}
+    virtual void parse(const uint8_t* busBytes, size_t length) { parse(busBytes); } // Fallback
+};
+
 // ======================================== Class: SingleTemp ========================================
-class SingleTemp {
+class SingleTemp : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -12,15 +24,15 @@ private:
 
 public:
     SingleTemp(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getTemperature() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: TempWithStatus ========================================
-class TempWithStatus {
+class TempWithStatus : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -29,16 +41,16 @@ private:
 
 public:
     TempWithStatus(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getTemperature() const;
     uint8_t getStatus() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: MultiTempWithStatus ========================================
-class MultiTempWithStatus {
+class MultiTempWithStatus : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -50,19 +62,19 @@ private:
 
 public:
     MultiTempWithStatus(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getActual() const;
     float getMinimum() const;
     float getMaximum() const;
     float getAverage() const;
     uint8_t getStatus() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: TemperatureSetpointMetaData ========================================
-class TemperatureSetpointMetaData {
+class TemperatureSetpointMetaData : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -74,19 +86,19 @@ private:
 
 public:
     TemperatureSetpointMetaData(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getLowerLimit() const;
     float getMinimum() const;
     float getDefault() const;
     float getMaximum() const;
     float getUpperLimit() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: TemperatureSetpointMetaDataWithEfficiency ========================================
-class TemperatureSetpointMetaDataWithEfficiency {
+class TemperatureSetpointMetaDataWithEfficiency : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -100,21 +112,21 @@ private:
 
 public:
     TemperatureSetpointMetaDataWithEfficiency(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getLowerLimit() const;
     float getMinimum() const;
     float getDefault() const;
     float getMaximum() const;
     float getUpperLimit() const;
-    float getUpperEfficiencyLowerLimit() const;
-    float getUpperEfficiencyUpperLimit() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    float getEfficiencyLowerLimit() const;
+    float getEfficiencyUpperLimit() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: Hysteresis ========================================
-class Hysteresis {
+class Hysteresis : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -123,16 +135,16 @@ private:
 
 public:
     Hysteresis(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getSetpointSwitchOn() const;
     float getSetpointSwitchOff() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: SinglePressure ========================================
-class SinglePressure {
+class SinglePressure : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -140,15 +152,15 @@ private:
 
 public:
     SinglePressure(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getPressure() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: PressureWithStatus ========================================
-class PressureWithStatus {
+class PressureWithStatus : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -157,16 +169,16 @@ private:
 
 public:
     PressureWithStatus(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getPressure() const;
     uint8_t getStatus() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: MultiPressureWithStatus ========================================
-class MultiPressureWithStatus {
+class MultiPressureWithStatus : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -178,19 +190,19 @@ private:
 
 public:
     MultiPressureWithStatus(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getActual() const;
     float getMinimum() const;
     float getMaximum() const;
     float getAverage() const;
     uint8_t getStatus() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: Pump ========================================
-class Pump {
+class Pump : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -201,18 +213,18 @@ private:
 
 public:
     Pump(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint8_t getState() const;
     uint8_t getTarget() const;
     uint8_t getActual() const;
     uint8_t getUnknown() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: MixerPump ========================================
-class MixerPump {
+class MixerPump : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -224,19 +236,19 @@ private:
 
 public:
     MixerPump(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint8_t getTargetPowerState() const;
     uint8_t getTargetValue() const;
     uint8_t getPowerState() const;
     uint8_t getErrorState() const;
     uint8_t getActualValue() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: ModeAndState ========================================
-class ModeAndState {
+class ModeAndState : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -245,16 +257,16 @@ private:
 
 public:
     ModeAndState(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint8_t getMode() const;
     uint8_t getState() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: PowerAndError ========================================
-class PowerAndError {
+class PowerAndError : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -263,16 +275,16 @@ private:
 
 public:
     PowerAndError(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint8_t getPower() const;
     uint8_t getError() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: MixerCurve ========================================
-class MixerCurve {
+class MixerCurve : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -282,17 +294,17 @@ private:
 
 public:
     MixerCurve(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint8_t getGradient() const;
     uint8_t getLevel() const;
     uint16_t getBasePoint() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: HeatPumpCompressor ========================================
-class HeatPumpCompressor {
+class HeatPumpCompressor : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -304,19 +316,19 @@ private:
 
 public:
     HeatPumpCompressor(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint64_t getUnknown1() const;
     uint16_t getStarts() const;
     uint16_t getUnknown2() const;
     uint16_t getHours() const;
     uint16_t getUnknown3() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: AdditionalElectricHeater ========================================
-class AdditionalElectricHeater {
+class AdditionalElectricHeater : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -328,19 +340,19 @@ private:
 
 public:
     AdditionalElectricHeater(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint32_t getUnknown1() const;
     uint16_t getStarts() const;
     uint16_t getUnknown2() const;
     uint16_t getHours() const;
     uint16_t getUnknown3() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: FlowSensor ========================================
-class FlowSensor {
+class FlowSensor : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -350,17 +362,17 @@ private:
 
 public:
     FlowSensor(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getActual() const;
     float getTemperature() const;
     uint8_t getUnknown() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: Power ========================================
-class Power {
+class Power : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -368,15 +380,15 @@ private:
 
 public:
     Power(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint32_t getPower() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: EnergyConsumption ========================================
-class EnergyConsumption {
+class EnergyConsumption : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -389,20 +401,20 @@ private:
 
 public:
     EnergyConsumption(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getToday() const;
     float getPast7Days() const;
     float getCurrentMonth() const;
     float getPastMonth() const;
     float getCurrentYear() const;
     float getPastYear() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: CanTime ========================================
-class CanTime {
+class CanTime : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -411,16 +423,16 @@ private:
 
 public:
     CanTime(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint8_t getHour() const;
     uint8_t getMinute() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: CanTimeWithSecond ========================================
-class CanTimeWithSecond {
+class CanTimeWithSecond : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -430,17 +442,17 @@ private:
 
 public:
     CanTimeWithSecond(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint8_t getHour() const;
     uint8_t getMinute() const;
     uint8_t getSecond() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: PressureConfiguration ========================================
-class PressureConfiguration {
+class PressureConfiguration : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -451,18 +463,18 @@ private:
 
 public:
     PressureConfiguration(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getDefaultPressure() const;
     float getNormalPressureDelta() const;
     float getMaximumPressure() const;
     float getErrorThreshold() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: SeasonalCoefficient ========================================
-class SeasonalCoefficient {
+class SeasonalCoefficient : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -472,17 +484,17 @@ private:
 
 public:
     SeasonalCoefficient(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getCurrentYear() const;
     float getEnergyThermal() const;
     float getEnergyElectric() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: ThermalPower ========================================
-class ThermalPower {
+class ThermalPower : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -491,16 +503,16 @@ private:
 
 public:
     ThermalPower(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint16_t getPower() const;
     uint16_t getUnknown() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: NominalPower ========================================
-class NominalPower {
+class NominalPower : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -509,16 +521,16 @@ private:
 
 public:
     NominalPower(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint16_t getPower() const;
     uint64_t getUnknown() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: TemperatureOffsets ========================================
-class TemperatureOffsets {
+class TemperatureOffsets : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -530,19 +542,19 @@ private:
 
 public:
     TemperatureOffsets(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getSetpointIncreaseRoomTemperatureHeating() const;
     float getSetpointDecreaseRoomTemperatureCooling() const;
     float getSetpointIncreaseDHWTemperature() const;
     float getSetpointIncreaseBufferTemperatureHeating() const;
     float getSetpointDecreaseBufferTemperatureCooling() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: PumpStatus ========================================
-class PumpStatus {
+class PumpStatus : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -551,16 +563,16 @@ private:
 
 public:
     PumpStatus(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     uint8_t getActual() const;
     uint32_t getUnknown() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: SetTemperature ========================================
-class SetTemperature {
+class SetTemperature : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -569,16 +581,16 @@ private:
 
 public:
     SetTemperature(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getMinimum() const;
     float getMaximum() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: Utf8String ========================================
-class Utf8String {
+class Utf8String : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -588,15 +600,16 @@ private:
 
 public:
     Utf8String(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes, size_t length);
+    void parse(const uint8_t* busBytes, size_t length) override;
     const char* getString() const;
-    uint32_t getDid() const;
-    String getName() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override { return String(getString()); }
     size_t getByteLength() const;
 };
 
 // ======================================== Class: CanInt8 ========================================
-class CanInt8 {
+class CanInt8 : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -604,15 +617,15 @@ private:
 
 public:
     CanInt8(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     int8_t getInt() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: CanInt16 ========================================
-class CanInt16 {
+class CanInt16 : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -620,15 +633,15 @@ private:
 
 public:
     CanInt16(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     int16_t getInt() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: CanInt32 ========================================
-class CanInt32 {
+class CanInt32 : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -636,15 +649,15 @@ private:
 
 public:
     CanInt32(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     int32_t getInt() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 // ======================================== Class: CanFloat32 ========================================
-class CanFloat32 {
+class CanFloat32 : public CanObject {
 private:
     uint32_t _did;
     String _name;
@@ -652,11 +665,11 @@ private:
 
 public:
     CanFloat32(uint32_t did, const String& name);
-    void parse(const uint8_t* busBytes);
+    void parse(const uint8_t* busBytes) override;
     float getFloat() const;
-    uint32_t getDid() const { return _did; }
-    String getName() const { return _name; }
-    String getFormattedString() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
 };
 
 #endif // CAN_DECODER_H

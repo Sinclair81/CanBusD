@@ -22,7 +22,7 @@ static int64_t convertBytesToInt64(const uint8_t* bytes) {
                      ((uint64_t)bytes[7] << 56));
 }
 static float convertBytesToFloat8(const uint8_t* byte) {
-    return byte / 10.0f;
+    return (float)(*byte / 10.0f);
 }
 static float convertBytesToFloat16(const uint8_t* bytes) {
     int16_t raw16 = convertBytesToInt16(bytes);
@@ -294,7 +294,7 @@ float SinglePressure::getPressure() const {
 
 String SinglePressure::getFormattedString() const {
     String output = "";
-    output += "Actual:" + String(getPressure(), 1) + "°C";
+    output += "Actual:" + String(getPressure(), 1) + "bar";
     return output;
 }
 
@@ -319,7 +319,7 @@ uint8_t PressureWithStatus::getStatus() const {
 
 String PressureWithStatus::getFormattedString() const {
     String output = "";
-    output += "Actual:"        + String(getPressure(), 1) + "°C | ";
+    output += "Actual:"        + String(getPressure(), 1) + "bar | ";
     output += "Sensor Status:" + String(getStatus());
     return output;
 }
@@ -363,10 +363,10 @@ uint8_t MultiPressureWithStatus::getStatus() const {
 
 String MultiPressureWithStatus::getFormattedString() const {
     String output = "";
-    output += "Actual:"        + String(getActual(), 1) + "°C | ";
-    output += "Minimum:"       + String(getMinimum(), 1) + "°C | ";
-    output += "Maximum:"       + String(getMaximum(), 1) + "°C | ";
-    output += "Average:"       + String(getAverage(), 1) + "°C | ";
+    output += "Actual:"        + String(getActual(), 1) + "bar | ";
+    output += "Minimum:"       + String(getMinimum(), 1) + "bar | ";
+    output += "Maximum:"       + String(getMaximum(), 1) + "bar | ";
+    output += "Average:"       + String(getAverage(), 1) + "bar | ";
     output += "Sensor Status:" + String(getStatus());
     return output;
 }
@@ -769,11 +769,11 @@ void CanTime::parse(const uint8_t* busBytes) {
     _rawBytesMinute = busBytes[1];
 }
 
-int8_t CanTime::getHour() const {
+uint8_t CanTime::getHour() const {
     return (int8_t)_rawBytesHour;
 }
 
-int8_t CanTime::getMinute() const {
+uint8_t CanTime::getMinute() const {
     return (int8_t)_rawBytesMinute;
 }
 
@@ -794,15 +794,15 @@ void CanTimeWithSecond::parse(const uint8_t* busBytes) {
     _rawBytesSecond = busBytes[2];
 }
 
-int8_t CanTimeWithSecond::getHour() const {
+uint8_t CanTimeWithSecond::getHour() const {
     return (int8_t)_rawBytesHour;
 }
 
-int8_t CanTimeWithSecond::getMinute() const {
+uint8_t CanTimeWithSecond::getMinute() const {
     return (int8_t)_rawBytesMinute;
 }
 
-int8_t CanTimeWithSecond::getSecond() const {
+uint8_t CanTimeWithSecond::getSecond() const {
     return (int8_t)_rawBytesSecond;
 }
 
@@ -871,7 +871,7 @@ void SeasonalCoefficient::parse(const uint8_t* busBytes) {
 }
 
 float SeasonalCoefficient::getCurrentYear() const {
-    return convertBytesToFloat8(_rawBytesCurrentYear);
+    return convertBytesToFloat8(&_rawBytesCurrentYear);
 }
 
 float SeasonalCoefficient::getEnergyThermal() const {
@@ -992,7 +992,7 @@ String TemperatureOffsets::getFormattedString() const {
     String output = "";
     output += "SetP Inc Room Temp Heating:"   + String(getSetpointIncreaseRoomTemperatureHeating(), 1)   + "°C | ";
     output += "SetP Dec Room Temp Cooling:"   + String(getSetpointDecreaseRoomTemperatureCooling(), 1)   + "°C | ";
-    output += "SetP Inc DHW Temp:"            + String(getSetpointIncreaseDHWTemperature(), 1).          + "°C | ";
+    output += "SetP Inc DHW Temp:"            + String(getSetpointIncreaseDHWTemperature(), 1)           + "°C | ";
     output += "SetP Inc Buffer Temp Heating:" + String(getSetpointIncreaseBufferTemperatureHeating(), 1) + "°C | ";
     output += "SetP Dec Buffer Temp Cooling:" + String(getSetpointDecreaseBufferTemperatureCooling(), 1) + "°C";
     return output;
@@ -1015,7 +1015,7 @@ uint8_t PumpStatus::getActual() const {
     return (uint8_t)_rawByteActual;
 }
 
-uint16_t PumpStatus::getUnknown() const {
+uint32_t PumpStatus::getUnknown() const {
     return convertBytesToInt32(_rawBytesUnknown);
 }
 
@@ -1083,14 +1083,6 @@ void Utf8String::parse(const uint8_t* busBytes, size_t length) {
 
 const char* Utf8String::getString() const {
     return _buffer;
-}
-
-uint32_t Utf8String::getDid() const {
-    return _did;
-}
-
-String Utf8String::getName() const {
-    return _name;
 }
 
 size_t Utf8String::getByteLength() const {
