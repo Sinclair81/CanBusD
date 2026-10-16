@@ -35,7 +35,8 @@
 #include <ElegantOTA.h>
 #include "driver/twai.h"
 #include "known_dids.h"
-#include "secrets.h"
+#include <secrets.h>     // USE THIS: Loads central credentials safely from the global Arduino libraries folder
+// #include "secrets.h"  // OPTIONAL: Fallback for local "secrets.h", fill it out, and uncomment this line if needed
 
 #define WATCHDOG_TIMEOUT_SECONDS 10
 
