@@ -2,23 +2,23 @@
 
 // Helper
 static int16_t convertBytesToInt16(const uint8_t* bytes) {
-    return (int16_t)((uint16_t)bytes[0] | 
+    return (int16_t)((uint16_t)bytes[0]|
                      ((uint16_t)bytes[1] << 8));
 }
 static int32_t convertBytesToInt32(const uint8_t* bytes) {
-    return (int32_t)((uint32_t)bytes[0] | 
-                     ((uint32_t)bytes[1] << 8) | 
-                     ((uint32_t)bytes[2] << 16) | 
+    return (int32_t)((uint32_t)bytes[0]|
+                     ((uint32_t)bytes[1] << 8)|
+                     ((uint32_t)bytes[2] << 16)|
                      ((uint32_t)bytes[3] << 24));
 }
 static int64_t convertBytesToInt64(const uint8_t* bytes) {
-    return (int64_t)((uint64_t)bytes[0] | 
-                     ((uint64_t)bytes[1] << 8) | 
-                     ((uint64_t)bytes[2] << 16) | 
-                     ((uint64_t)bytes[3] << 24) | 
-                     ((uint64_t)bytes[4] << 32) | 
-                     ((uint64_t)bytes[5] << 40) | 
-                     ((uint64_t)bytes[6] << 48) | 
+    return (int64_t)((uint64_t)bytes[0]|
+                     ((uint64_t)bytes[1] << 8)|
+                     ((uint64_t)bytes[2] << 16)|
+                     ((uint64_t)bytes[3] << 24)|
+                     ((uint64_t)bytes[4] << 32)|
+                     ((uint64_t)bytes[5] << 40)|
+                     ((uint64_t)bytes[6] << 48)|
                      ((uint64_t)bytes[7] << 56));
 }
 static float convertBytesToFloat8(const uint8_t* byte) {
@@ -45,10 +45,54 @@ static float convertBytesToRealFloat32(const uint8_t* bytes) {
     return converter.f;
 }
 
+String trimAfterColonByMask(String input, uint8_t mask) {
+    if ((mask & 0b00000001) == 1) {
+        int colonIndex = input.indexOf(':');
+        if (colonIndex != -1) {
+            String result = input.substring(colonIndex + 1);
+            result.trim(); 
+            return result;
+        }
+    }
+    return input;
+}
+
+static String rebuildStringByMask(const String& original, uint8_t mask, const String& newSeparator) {
+    String result = "";
+    bool firstAdded = false;
+    int bitIndex = 7;
+    int currentPos = 0;
+    int nextPos = 0;
+    const String oldSeparator = "|";
+    while (currentPos < original.length() && bitIndex >= 0) {
+        nextPos = original.indexOf(oldSeparator, currentPos);
+        if (nextPos == -1) {
+            nextPos = original.length();
+        }
+        String part = original.substring(currentPos, nextPos);
+        part.trim();
+        if (mask & (1 << bitIndex)) {
+            if (firstAdded) {
+                result += newSeparator;
+            }
+            result += part;
+            firstAdded = true;
+        }
+        currentPos = nextPos + oldSeparator.length();
+        bitIndex--;
+    }
+    return trimAfterColonByMask(result, mask);
+}
+
+// ======================================== Class: ListDummy ========================================
+
+ListDummy::ListDummy(uint32_t did, const String& name, const String& text) : _did(did), _name(name), _text(text)  {
+    // Initialisierung der ID und des Namens über die Initialisierungsliste
+}
+
 // ======================================== Class: SingleTemp ========================================
 
-SingleTemp::SingleTemp(uint32_t did, const String& name) : _did(did), _name(name) {
-    // Initialisierung der ID und des Namens über die Initialisierungsliste
+SingleTemp::SingleTemp(uint32_t did, const String& name, uint8_t mask) : _did(did), _name(name), _mask(mask) {
 }
 
 void SingleTemp::parse(const uint8_t* busBytes) {
@@ -63,12 +107,12 @@ float SingleTemp::getTemperature() const {
 String SingleTemp::getFormattedString() const {
     String output = "";
     output += "Actual:" + String(getTemperature(), 1) + "°C";
-    return output;
+    return trimAfterColonByMask(output, _mask);
 }
 
 // ======================================== Class: TempWithStatus ========================================
 
-TempWithStatus::TempWithStatus(uint32_t did, const String& name) : _did(did), _name(name) {
+TempWithStatus::TempWithStatus(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void TempWithStatus::parse(const uint8_t* busBytes) {
@@ -87,14 +131,14 @@ uint8_t TempWithStatus::getStatus() const {
 
 String TempWithStatus::getFormattedString() const {
     String output = "";
-    output += "Actual:"        + String(getTemperature(), 1) + "°C | ";
+    output += "Actual:"        + String(getTemperature(), 1) + "°C|";
     output += "Sensor Status:" + String(getStatus());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: MultiTempWithStatus ========================================
 
-MultiTempWithStatus::MultiTempWithStatus(uint32_t did, const String& name) : _did(did), _name(name) {
+MultiTempWithStatus::MultiTempWithStatus(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void MultiTempWithStatus::parse(const uint8_t* busBytes) {
@@ -131,17 +175,17 @@ uint8_t MultiTempWithStatus::getStatus() const {
 
 String MultiTempWithStatus::getFormattedString() const {
     String output = "";
-    output += "Actual:"        + String(getActual(), 1) + "°C | ";
-    output += "Minimum:"       + String(getMinimum(), 1) + "°C | ";
-    output += "Maximum:"       + String(getMaximum(), 1) + "°C | ";
-    output += "Average:"       + String(getAverage(), 1) + "°C | ";
+    output += "Actual:"        + String(getActual(), 1) + "°C|";
+    output += "Minimum:"       + String(getMinimum(), 1) + "°C|";
+    output += "Maximum:"       + String(getMaximum(), 1) + "°C|";
+    output += "Average:"       + String(getAverage(), 1) + "°C|";
     output += "Sensor Status:" + String(getStatus());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: TemperatureSetpointMetaData ========================================
 
-TemperatureSetpointMetaData::TemperatureSetpointMetaData(uint32_t did, const String& name) : _did(did), _name(name) {
+TemperatureSetpointMetaData::TemperatureSetpointMetaData(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void TemperatureSetpointMetaData::parse(const uint8_t* busBytes) {
@@ -179,17 +223,17 @@ float TemperatureSetpointMetaData::getUpperLimit() const {
 
 String TemperatureSetpointMetaData::getFormattedString() const {
     String output = "";
-    output += "LowerLimit:" + String(getLowerLimit(), 1) + "°C | ";
-    output += "Minimum:"    + String(getMinimum(), 1)    + "°C | ";
-    output += "Default:"    + String(getDefault(), 1)    + "°C | ";
-    output += "Maximum:"    + String(getMaximum(), 1)    + "°C | ";
+    output += "LowerLimit:" + String(getLowerLimit(), 1) + "°C|";
+    output += "Minimum:"    + String(getMinimum(), 1)    + "°C|";
+    output += "Default:"    + String(getDefault(), 1)    + "°C|";
+    output += "Maximum:"    + String(getMaximum(), 1)    + "°C|";
     output += "UpperLimit:" + String(getUpperLimit(), 1) + "°C";
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: TemperatureSetpointMetaDataWithEfficiency ========================================
 
-TemperatureSetpointMetaDataWithEfficiency::TemperatureSetpointMetaDataWithEfficiency(uint32_t did, const String& name) : _did(did), _name(name) {
+TemperatureSetpointMetaDataWithEfficiency::TemperatureSetpointMetaDataWithEfficiency(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void TemperatureSetpointMetaDataWithEfficiency::parse(const uint8_t* busBytes) {
@@ -239,19 +283,19 @@ float TemperatureSetpointMetaDataWithEfficiency::getEfficiencyUpperLimit() const
 
 String TemperatureSetpointMetaDataWithEfficiency::getFormattedString() const {
     String output = "";
-    output += "LowerLimit:"           + String(getLowerLimit(), 1)           + "°C | ";
-    output += "Minimum:"              + String(getMinimum(), 1)              + "°C | ";
-    output += "Default:"              + String(getDefault(), 1)              + "°C | ";
-    output += "Maximum:"              + String(getMaximum(), 1)              + "°C | ";
-    output += "UpperLimit:"           + String(getUpperLimit(), 1)           + "°C | ";
-    output += "EfficiencyLowerLimit:" + String(getEfficiencyLowerLimit(), 1) + "°C | ";
+    output += "LowerLimit:"           + String(getLowerLimit(), 1)           + "°C|";
+    output += "Minimum:"              + String(getMinimum(), 1)              + "°C|";
+    output += "Default:"              + String(getDefault(), 1)              + "°C|";
+    output += "Maximum:"              + String(getMaximum(), 1)              + "°C|";
+    output += "UpperLimit:"           + String(getUpperLimit(), 1)           + "°C|";
+    output += "EfficiencyLowerLimit:" + String(getEfficiencyLowerLimit(), 1) + "°C|";
     output += "EfficiencyUpperLimit:" + String(getEfficiencyUpperLimit(), 1) + "°C";
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: Hysteresis ========================================
 
-Hysteresis::Hysteresis(uint32_t did, const String& name) : _did(did), _name(name) {
+Hysteresis::Hysteresis(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void Hysteresis::parse(const uint8_t* busBytes) {
@@ -271,15 +315,15 @@ float Hysteresis::getSetpointSwitchOff() const {
 
 String Hysteresis::getFormattedString() const {
     String output = "";
-    output += "Setpoint Switch On:"  + String(getSetpointSwitchOn(), 1)  + "°C | ";
+    output += "Setpoint Switch On:"  + String(getSetpointSwitchOn(), 1)  + "°C|";
     output += "Setpoint Switch Off:" + String(getSetpointSwitchOff(), 1) + "°C";
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 
 // ======================================== Class: SinglePressure ========================================
 
-SinglePressure::SinglePressure(uint32_t did, const String& name) : _did(did), _name(name) {
+SinglePressure::SinglePressure(uint32_t did, const String& name, uint8_t mask) : _did(did), _name(name), _mask(mask) {
     // Initialisierung der ID und des Namens über die Initialisierungsliste
 }
 
@@ -295,12 +339,12 @@ float SinglePressure::getPressure() const {
 String SinglePressure::getFormattedString() const {
     String output = "";
     output += "Actual:" + String(getPressure(), 1) + "bar";
-    return output;
+    return trimAfterColonByMask(output, _mask);
 }
 
 // ======================================== Class: PressureWithStatus ========================================
 
-PressureWithStatus::PressureWithStatus(uint32_t did, const String& name) : _did(did), _name(name) {
+PressureWithStatus::PressureWithStatus(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void PressureWithStatus::parse(const uint8_t* busBytes) {
@@ -319,14 +363,14 @@ uint8_t PressureWithStatus::getStatus() const {
 
 String PressureWithStatus::getFormattedString() const {
     String output = "";
-    output += "Actual:"        + String(getPressure(), 1) + "bar | ";
+    output += "Actual:"        + String(getPressure(), 1) + "bar|";
     output += "Sensor Status:" + String(getStatus());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: MultiPressureWithStatus ========================================
 
-MultiPressureWithStatus::MultiPressureWithStatus(uint32_t did, const String& name) : _did(did), _name(name) {
+MultiPressureWithStatus::MultiPressureWithStatus(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void MultiPressureWithStatus::parse(const uint8_t* busBytes) {
@@ -363,17 +407,17 @@ uint8_t MultiPressureWithStatus::getStatus() const {
 
 String MultiPressureWithStatus::getFormattedString() const {
     String output = "";
-    output += "Actual:"        + String(getActual(), 1) + "bar | ";
-    output += "Minimum:"       + String(getMinimum(), 1) + "bar | ";
-    output += "Maximum:"       + String(getMaximum(), 1) + "bar | ";
-    output += "Average:"       + String(getAverage(), 1) + "bar | ";
+    output += "Actual:"        + String(getActual(), 1) + "bar|";
+    output += "Minimum:"       + String(getMinimum(), 1) + "bar|";
+    output += "Maximum:"       + String(getMaximum(), 1) + "bar|";
+    output += "Average:"       + String(getAverage(), 1) + "bar|";
     output += "Sensor Status:" + String(getStatus());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: Pump ========================================
 
-Pump::Pump(uint32_t did, const String& name) : _did(did), _name(name) {
+Pump::Pump(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void Pump::parse(const uint8_t* busBytes) {
@@ -401,16 +445,16 @@ uint8_t Pump::getUnknown() const {
 
 String Pump::getFormattedString() const {
     String output = "";
-    output += "State:"   + String(getState())  + " | ";
-    output += "Target:"  + String(getTarget()) + "% | ";
-    output += "Actual:"  + String(getActual()) + "% | ";
+    output += "State:"   + String(getState())  + "|";
+    output += "Target:"  + String(getTarget()) + "%|";
+    output += "Actual:"  + String(getActual()) + "%|";
     output += "Unknown:" + String(getUnknown());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: MixerPump ========================================
 
-MixerPump::MixerPump(uint32_t did, const String& name) : _did(did), _name(name) {
+MixerPump::MixerPump(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void MixerPump::parse(const uint8_t* busBytes) {
@@ -443,17 +487,17 @@ uint8_t MixerPump::getActualValue() const {
 
 String MixerPump::getFormattedString() const {
     String output = "";
-    output += "Target Power State:" + String(getTargetPowerState()) + " | ";
-    output += "Target Value:"       + String(getTargetValue())      + " | ";
-    output += "Power State:"        + String(getPowerState())       + " | ";
-    output += "Error State:"        + String(getErrorState())       + " | ";
+    output += "Target Power State:" + String(getTargetPowerState()) + "|";
+    output += "Target Value:"       + String(getTargetValue())      + "|";
+    output += "Power State:"        + String(getPowerState())       + "|";
+    output += "Error State:"        + String(getErrorState())       + "|";
     output += "Actual Value:"       + String(getActualValue());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: ModeAndState ========================================
 
-ModeAndState::ModeAndState(uint32_t did, const String& name) : _did(did), _name(name) {
+ModeAndState::ModeAndState(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void ModeAndState::parse(const uint8_t* busBytes) {
@@ -471,14 +515,14 @@ uint8_t ModeAndState::getState() const {
 
 String ModeAndState::getFormattedString() const {
     String output = "";
-    output += "Mode:"  + String(getMode()) + " | ";
+    output += "Mode:"  + String(getMode()) + "|";
     output += "State:" + String(getState());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: PowerAndError ========================================
 
-PowerAndError::PowerAndError(uint32_t did, const String& name) : _did(did), _name(name) {
+PowerAndError::PowerAndError(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void PowerAndError::parse(const uint8_t* busBytes) {
@@ -496,14 +540,14 @@ uint8_t PowerAndError::getError() const {
 
 String PowerAndError::getFormattedString() const {
     String output = "";
-    output += "Power:" + String(getPower()) + " | ";
+    output += "Power:" + String(getPower()) + "|";
     output += "Error:" + String(getError());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: MixerCurve ========================================
 
-MixerCurve::MixerCurve(uint32_t did, const String& name) : _did(did), _name(name) {
+MixerCurve::MixerCurve(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void MixerCurve::parse(const uint8_t* busBytes) {
@@ -527,15 +571,15 @@ uint16_t MixerCurve::getBasePoint() const {
 
 String MixerCurve::getFormattedString() const {
     String output = "";
-    output += "Gradient:"   + String(getGradient()) + " | ";
-    output += "Level:"      + String(getLevel())    + " | ";
+    output += "Gradient:"   + String(getGradient()) + "|";
+    output += "Level:"      + String(getLevel())    + "|";
     output += "Base Point:" + String(getBasePoint());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: HeatPumpCompressor ========================================
 
-HeatPumpCompressor::HeatPumpCompressor(uint32_t did, const String& name) : _did(did), _name(name) {
+HeatPumpCompressor::HeatPumpCompressor(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void HeatPumpCompressor::parse(const uint8_t* busBytes) {
@@ -579,17 +623,17 @@ uint16_t HeatPumpCompressor::getUnknown3() const {
 
 String HeatPumpCompressor::getFormattedString() const {
     String output = "";
-    output += "Unknown 1:" + String(getUnknown1()) + " | ";
-    output += "Starts:"    + String(getStarts())   + " | ";
-    output += "Unknown 2:" + String(getUnknown2()) + " | ";
-    output += "Hours:"     + String(getHours())    + " | ";
+    output += "Unknown 1:" + String(getUnknown1()) + "|";
+    output += "Starts:"    + String(getStarts())   + "|";
+    output += "Unknown 2:" + String(getUnknown2()) + "|";
+    output += "Hours:"     + String(getHours())    + "|";
     output += "Unknown 3:" + String(getUnknown3());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: AdditionalElectricHeater ========================================
 
-AdditionalElectricHeater::AdditionalElectricHeater(uint32_t did, const String& name) : _did(did), _name(name) {
+AdditionalElectricHeater::AdditionalElectricHeater(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void AdditionalElectricHeater::parse(const uint8_t* busBytes) {
@@ -629,17 +673,17 @@ uint16_t AdditionalElectricHeater::getUnknown3() const {
 
 String AdditionalElectricHeater::getFormattedString() const {
     String output = "";
-    output += "Unknown 1:" + String(getUnknown1()) + " | ";
-    output += "Starts:"    + String(getStarts())   + " | ";
-    output += "Unknown 2:" + String(getUnknown2()) + " | ";
-    output += "Hours:"     + String(getHours())    + " | ";
+    output += "Unknown 1:" + String(getUnknown1()) + "|";
+    output += "Starts:"    + String(getStarts())   + "|";
+    output += "Unknown 2:" + String(getUnknown2()) + "|";
+    output += "Hours:"     + String(getHours())    + "|";
     output += "Unknown 3:" + String(getUnknown3());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: FlowSensor ========================================
 
-FlowSensor::FlowSensor(uint32_t did, const String& name) : _did(did), _name(name) {
+FlowSensor::FlowSensor(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void FlowSensor::parse(const uint8_t* busBytes) {
@@ -664,15 +708,15 @@ uint8_t FlowSensor::getUnknown() const {
 
 String FlowSensor::getFormattedString() const {
     String output = "";
-    output += "Actual:"      + String(getActual(), 0)      + "l/h | ";
-    output += "Temperature:" + String(getTemperature(), 1) + "°C | ";
+    output += "Actual:"      + String(getActual(), 0)      + "l/h|";
+    output += "Temperature:" + String(getTemperature(), 1) + "°C|";
     output += "Unknown:"     + String(getUnknown());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: Power ========================================
 
-Power::Power(uint32_t did, const String& name) : _did(did), _name(name) {
+Power::Power(uint32_t did, const String& name, uint8_t mask) : _did(did), _name(name), _mask(mask) {
 }
 
 void Power::parse(const uint8_t* busBytes) {
@@ -689,12 +733,12 @@ uint32_t Power::getPower() const {
 String Power::getFormattedString() const {
     String output = "";
     output += "Power:" + String(getPower()) + "W";
-    return output;
+    return trimAfterColonByMask(output, _mask);
 }
 
 // ======================================== Class: EnergyConsumption ========================================
 
-EnergyConsumption::EnergyConsumption(uint32_t did, const String& name) : _did(did), _name(name) {
+EnergyConsumption::EnergyConsumption(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void EnergyConsumption::parse(const uint8_t* busBytes) {
@@ -750,13 +794,13 @@ float EnergyConsumption::getPastYear() const {
 
 String EnergyConsumption::getFormattedString() const {
     String output = "";
-    output += "Today:"        + String(getToday(), 1)        + "kWh | ";
-    output += "Past7Days:"    + String(getPast7Days(), 1)    + "kWh | ";
-    output += "CurrentMonth:" + String(getCurrentMonth(), 1) + "kWh | ";
-    output += "PastMonth:"    + String(getPastMonth(), 1)    + "kWh | ";
-    output += "CurrentYear:"  + String(getCurrentYear(), 1)  + "kWh | ";
-    output += "PastYear:"     + String(getPastYear(), 1)     + "kWh";
-    return output;
+    output += "Today:"         + String(getToday(), 1)        + "kWh|";
+    output += "Past 7 Days:"   + String(getPast7Days(), 1)    + "kWh|";
+    output += "Current Month:" + String(getCurrentMonth(), 1) + "kWh|";
+    output += "Past Month:"    + String(getPastMonth(), 1)    + "kWh|";
+    output += "Current Year:"  + String(getCurrentYear(), 1)  + "kWh|";
+    output += "Past Year:"     + String(getPastYear(), 1)     + "kWh";
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: CanTime ========================================
@@ -812,9 +856,36 @@ String CanTimeWithSecond::getFormattedString() const {
     return output;
 }
 
+// ======================================== Class: CanDay ========================================
+
+CanDay::CanDay(uint32_t did, const String& name) : _did(did), _name(name) {
+}
+
+void CanDay::parse(const uint8_t* busBytes) {
+    _byte = busBytes[0];
+}
+
+int8_t CanDay::getDay() const {
+    return (int8_t)_byte;
+}
+
+String CanDay::getFormattedString() const {
+    String dayName = "Unknown";
+    switch (_byte) {
+        case 0: dayName = "Monday"; break;
+        case 1: dayName = "Tuesday"; break;
+        case 2: dayName = "Wednesday"; break;
+        case 3: dayName = "Thursday"; break;
+        case 4: dayName = "Friday"; break;
+        case 5: dayName = "Saturday"; break;
+        case 6: dayName = "Sunday"; break;
+    }
+    return dayName;
+}
+
 // ======================================== Class: PressureConfiguration ========================================
 
-PressureConfiguration::PressureConfiguration(uint32_t did, const String& name) : _did(did), _name(name) {
+PressureConfiguration::PressureConfiguration(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void PressureConfiguration::parse(const uint8_t* busBytes) {
@@ -846,16 +917,16 @@ float PressureConfiguration::getErrorThreshold() const {
 
 String PressureConfiguration::getFormattedString() const {
     String output = "";
-    output += "Default:"         + String(getDefaultPressure(), 1)     + "bar | ";
-    output += "Normal Delta:"    + String(getNormalPressureDelta(), 1) + "bar | ";
-    output += "Maximum:"         + String(getMaximumPressure(), 1)     + "bar | ";
+    output += "Default:"         + String(getDefaultPressure(), 1)     + "bar|";
+    output += "Normal Delta:"    + String(getNormalPressureDelta(), 1) + "bar|";
+    output += "Maximum:"         + String(getMaximumPressure(), 1)     + "bar|";
     output += "Error Threshold:" + String(getErrorThreshold(), 1)      + "bar";
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: SeasonalCoefficient ========================================
 
-SeasonalCoefficient::SeasonalCoefficient(uint32_t did, const String& name) : _did(did), _name(name) {
+SeasonalCoefficient::SeasonalCoefficient(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void SeasonalCoefficient::parse(const uint8_t* busBytes) {
@@ -884,15 +955,15 @@ float SeasonalCoefficient::getEnergyElectric() const {
 
 String SeasonalCoefficient::getFormattedString() const {
     String output = "";
-    output += "Current Year:"    + String(getCurrentYear(), 1)    + " | ";
-    output += "Energy Thermal:"  + String(getEnergyThermal(), 1)  + "kWh | ";
+    output += "Current Year:"    + String(getCurrentYear(), 1)    + "|";
+    output += "Energy Thermal:"  + String(getEnergyThermal(), 1)  + "kWh|";
     output += "Energy Electric:" + String(getEnergyElectric(), 1) + "kWh";
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: ThermalPower ========================================
 
-ThermalPower::ThermalPower(uint32_t did, const String& name) : _did(did), _name(name) {
+ThermalPower::ThermalPower(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void ThermalPower::parse(const uint8_t* busBytes) {
@@ -912,14 +983,14 @@ uint16_t ThermalPower::getUnknown() const {
 
 String ThermalPower::getFormattedString() const {
     String output = "";
-    output += "Power:"   + String(getPower()) + "kW | ";
+    output += "Power:"   + String(getPower()) + "kW|";
     output += "Unknown:" + String(getUnknown());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: NominalPower ========================================
 
-NominalPower::NominalPower(uint32_t did, const String& name) : _did(did), _name(name) {
+NominalPower::NominalPower(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void NominalPower::parse(const uint8_t* busBytes) {
@@ -945,14 +1016,14 @@ uint64_t NominalPower::getUnknown() const {
 
 String NominalPower::getFormattedString() const {
     String output = "";
-    output += "Power:"   + String(getPower()) + "kW | ";
+    output += "Power:"   + String(getPower()) + "kW|";
     output += "Unknown:" + String(getUnknown());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: TemperatureOffsets ========================================
 
-TemperatureOffsets::TemperatureOffsets(uint32_t did, const String& name) : _did(did), _name(name) {
+TemperatureOffsets::TemperatureOffsets(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void TemperatureOffsets::parse(const uint8_t* busBytes) {
@@ -990,17 +1061,17 @@ float TemperatureOffsets::getSetpointDecreaseBufferTemperatureCooling() const {
 
 String TemperatureOffsets::getFormattedString() const {
     String output = "";
-    output += "SetP Inc Room Temp Heating:"   + String(getSetpointIncreaseRoomTemperatureHeating(), 1)   + "°C | ";
-    output += "SetP Dec Room Temp Cooling:"   + String(getSetpointDecreaseRoomTemperatureCooling(), 1)   + "°C | ";
-    output += "SetP Inc DHW Temp:"            + String(getSetpointIncreaseDHWTemperature(), 1)           + "°C | ";
-    output += "SetP Inc Buffer Temp Heating:" + String(getSetpointIncreaseBufferTemperatureHeating(), 1) + "°C | ";
+    output += "SetP Inc Room Temp Heating:"   + String(getSetpointIncreaseRoomTemperatureHeating(), 1)   + "°C|";
+    output += "SetP Dec Room Temp Cooling:"   + String(getSetpointDecreaseRoomTemperatureCooling(), 1)   + "°C|";
+    output += "SetP Inc DHW Temp:"            + String(getSetpointIncreaseDHWTemperature(), 1)           + "°C|";
+    output += "SetP Inc Buffer Temp Heating:" + String(getSetpointIncreaseBufferTemperatureHeating(), 1) + "°C|";
     output += "SetP Dec Buffer Temp Cooling:" + String(getSetpointDecreaseBufferTemperatureCooling(), 1) + "°C";
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: PumpStatus ========================================
 
-PumpStatus::PumpStatus(uint32_t did, const String& name) : _did(did), _name(name) {
+PumpStatus::PumpStatus(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void PumpStatus::parse(const uint8_t* busBytes) {
@@ -1021,14 +1092,14 @@ uint32_t PumpStatus::getUnknown() const {
 
 String PumpStatus::getFormattedString() const {
     String output = "";
-    output += "Actual:"  + String(getActual()) + " | ";
+    output += "Actual:"  + String(getActual()) + "|";
     output += "Unknown:" + String(getUnknown());
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: SetTemperature ========================================
 
-SetTemperature::SetTemperature(uint32_t did, const String& name) : _did(did), _name(name) {
+SetTemperature::SetTemperature(uint32_t did, const String& name, uint8_t mask, const String& sep) : _did(did), _name(name), _mask(mask), _sep(sep) {
 }
 
 void SetTemperature::parse(const uint8_t* busBytes) {
@@ -1048,9 +1119,9 @@ float SetTemperature::getMaximum() const {
 
 String SetTemperature::getFormattedString() const {
     String output = "";
-    output += "Minimum:" + String(getMinimum(), 1) + "°C | ";
+    output += "Minimum:" + String(getMinimum(), 1) + "°C|";
     output += "Maximum:" + String(getMaximum(), 1) + "°C";
-    return output;
+    return rebuildStringByMask(output, _mask, _sep);
 }
 
 // ======================================== Class: Utf8String ========================================

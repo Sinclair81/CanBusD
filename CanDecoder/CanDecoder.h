@@ -15,15 +15,30 @@ public:
     virtual void parse(const uint8_t* busBytes, size_t length) { parse(busBytes); } // Fallback
 };
 
+// ======================================== Class: ListDummy ========================================
+class ListDummy : public CanObject {
+private:
+    uint32_t _did;
+    String _name;
+    String _text;
+
+public:
+    ListDummy(uint32_t did, const String& name = "", const String& text = "");
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override { return _text; }
+};
+
 // ======================================== Class: SingleTemp ========================================
 class SingleTemp : public CanObject {
 private:
     uint32_t _did;
     String _name;
     uint8_t _rawBytes[2] = {0};
+    uint8_t _mask;
 
 public:
-    SingleTemp(uint32_t did, const String& name);
+    SingleTemp(uint32_t did, const String& name, uint8_t mask = 0xFE);
     void parse(const uint8_t* busBytes) override;
     float getTemperature() const;
     uint32_t getDid() const override { return _did; }
@@ -38,9 +53,11 @@ private:
     String _name;
     uint8_t _rawBytesTemp[2] = {0};
     uint8_t _statusByte = 0;
+    uint8_t _mask;
+    String _sep;
 
 public:
-    TempWithStatus(uint32_t did, const String& name);
+    TempWithStatus(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getTemperature() const;
     uint8_t getStatus() const;
@@ -59,9 +76,11 @@ private:
     uint8_t _rawBytesMaximum[2] = {0};
     uint8_t _rawBytesAverage[2] = {0};
     uint8_t _statusByte = 0;
+    uint8_t _mask;
+    String _sep;
 
 public:
-    MultiTempWithStatus(uint32_t did, const String& name);
+    MultiTempWithStatus(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getActual() const;
     float getMinimum() const;
@@ -83,9 +102,11 @@ private:
     uint8_t _rawBytesDefault[2] = {0};
     uint8_t _rawBytesMaximum[2] = {0};
     uint8_t _rawBytesUpperLimit[2] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    TemperatureSetpointMetaData(uint32_t did, const String& name);
+    TemperatureSetpointMetaData(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getLowerLimit() const;
     float getMinimum() const;
@@ -109,9 +130,11 @@ private:
     uint8_t _rawBytesUpperLimit[2] = {0};
     uint8_t _rawBytesEfficiencyLowerLimit[2] = {0};
     uint8_t _rawBytesEfficiencyUpperLimit[2] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    TemperatureSetpointMetaDataWithEfficiency(uint32_t did, const String& name);
+    TemperatureSetpointMetaDataWithEfficiency(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getLowerLimit() const;
     float getMinimum() const;
@@ -132,9 +155,11 @@ private:
     String _name;
     uint8_t _rawBytesSetpointSwitchOn[2]  = {0};
     uint8_t _rawBytesSetpointSwitchOff[2] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    Hysteresis(uint32_t did, const String& name);
+    Hysteresis(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getSetpointSwitchOn() const;
     float getSetpointSwitchOff() const;
@@ -149,9 +174,10 @@ private:
     uint32_t _did;
     String _name;
     uint8_t _rawBytes[2] = {0};
+    uint8_t _mask;
 
 public:
-    SinglePressure(uint32_t did, const String& name);
+    SinglePressure(uint32_t did, const String& name, uint8_t mask = 0xFE);
     void parse(const uint8_t* busBytes) override;
     float getPressure() const;
     uint32_t getDid() const override { return _did; }
@@ -166,9 +192,11 @@ private:
     String _name;
     uint8_t _rawBytesPressure[2] = {0};
     uint8_t _statusByte = 0;
+    uint8_t _mask;
+    String _sep;
 
 public:
-    PressureWithStatus(uint32_t did, const String& name);
+    PressureWithStatus(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getPressure() const;
     uint8_t getStatus() const;
@@ -187,9 +215,11 @@ private:
     uint8_t _rawBytesMaximum[2] = {0};
     uint8_t _rawBytesAverage[2] = {0};
     uint8_t _statusByte = 0;
+    uint8_t _mask;
+    String _sep;
 
 public:
-    MultiPressureWithStatus(uint32_t did, const String& name);
+    MultiPressureWithStatus(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getActual() const;
     float getMinimum() const;
@@ -210,9 +240,11 @@ private:
     uint8_t _targetByte = 0;
     uint8_t _actualByte = 0;
     uint8_t _unknownByte = 0;
+    uint8_t _mask;
+    String _sep;
 
 public:
-    Pump(uint32_t did, const String& name);
+    Pump(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     uint8_t getState() const;
     uint8_t getTarget() const;
@@ -233,9 +265,11 @@ private:
     uint8_t _powerStateByte = 0;
     uint8_t _errorStateByte = 0;
     uint8_t _actualValueByte = 0;
+    uint8_t _mask;
+    String _sep;
 
 public:
-    MixerPump(uint32_t did, const String& name);
+    MixerPump(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     uint8_t getTargetPowerState() const;
     uint8_t getTargetValue() const;
@@ -254,9 +288,11 @@ private:
     String _name;
     uint8_t _modeByte = 0;
     uint8_t _stateByte = 0;
+    uint8_t _mask;
+    String _sep;
 
 public:
-    ModeAndState(uint32_t did, const String& name);
+    ModeAndState(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     uint8_t getMode() const;
     uint8_t getState() const;
@@ -272,9 +308,11 @@ private:
     String _name;
     uint8_t _powerByte = 0;
     uint8_t _errorByte = 0;
+    uint8_t _mask;
+    String _sep;
 
 public:
-    PowerAndError(uint32_t did, const String& name);
+    PowerAndError(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     uint8_t getPower() const;
     uint8_t getError() const;
@@ -291,9 +329,11 @@ private:
     uint8_t _gradientByte = 0;
     uint8_t _levelByte = 0;
     uint8_t _rawBytesBasePoint[2] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    MixerCurve(uint32_t did, const String& name);
+    MixerCurve(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     uint8_t getGradient() const;
     uint8_t getLevel() const;
@@ -313,9 +353,11 @@ private:
     uint8_t _rawBytesUnknown2[2] = {0};
     uint8_t _rawBytesHours[2]    = {0};
     uint8_t _rawBytesUnknown3[2] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    HeatPumpCompressor(uint32_t did, const String& name);
+    HeatPumpCompressor(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     uint64_t getUnknown1() const;
     uint16_t getStarts() const;
@@ -337,9 +379,11 @@ private:
     uint8_t _rawBytesUnknown2[2] = {0};
     uint8_t _rawBytesHours[2]    = {0};
     uint8_t _rawBytesUnknown3[2] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    AdditionalElectricHeater(uint32_t did, const String& name);
+    AdditionalElectricHeater(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     uint32_t getUnknown1() const;
     uint16_t getStarts() const;
@@ -359,9 +403,11 @@ private:
     uint8_t _rawBytesActual[2]      = {0};
     uint8_t _rawBytesTemperature[2] = {0};
     uint8_t _unknownByte = 0;
+    uint8_t _mask;
+    String _sep;
 
 public:
-    FlowSensor(uint32_t did, const String& name);
+    FlowSensor(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getActual() const;
     float getTemperature() const;
@@ -377,9 +423,10 @@ private:
     uint32_t _did;
     String _name;
     uint8_t _rawBytesPower[4] = {0};
+    uint8_t _mask;
 
 public:
-    Power(uint32_t did, const String& name);
+    Power(uint32_t did, const String& name, uint8_t mask = 0xFE);
     void parse(const uint8_t* busBytes) override;
     uint32_t getPower() const;
     uint32_t getDid() const override { return _did; }
@@ -398,9 +445,11 @@ private:
     uint8_t _rawBytesPastMonth[4]    = {0};
     uint8_t _rawBytesCurrentYear[4]  = {0};
     uint8_t _rawBytesPastYear[4]     = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    EnergyConsumption(uint32_t did, const String& name);
+    EnergyConsumption(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getToday() const;
     float getPast7Days() const;
@@ -451,6 +500,22 @@ public:
     String getFormattedString() const override;
 };
 
+// ======================================== Class: CanDay ========================================
+class CanDay : public CanObject {
+private:
+    uint32_t _did;
+    String _name;
+    uint8_t _byte = 0;
+
+public:
+    CanDay(uint32_t did, const String& name);
+    void parse(const uint8_t* busBytes) override;
+    int8_t getDay() const;
+    uint32_t getDid() const override { return _did; }
+    String getName() const override { return _name; }
+    String getFormattedString() const override;
+};
+
 // ======================================== Class: PressureConfiguration ========================================
 class PressureConfiguration : public CanObject {
 private:
@@ -460,9 +525,11 @@ private:
     uint8_t _rawBytesNormalPressureDelta[2] = {0};
     uint8_t _rawBytesMaximumPressure[2]     = {0};
     uint8_t _rawBytesErrorThreshold[2]      = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    PressureConfiguration(uint32_t did, const String& name);
+    PressureConfiguration(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getDefaultPressure() const;
     float getNormalPressureDelta() const;
@@ -481,9 +548,11 @@ private:
     uint8_t _rawBytesCurrentYear       =  0;
     uint8_t _rawBytesEnergyThermal[4]  = {0};
     uint8_t _rawBytesEnergyElectric[4] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    SeasonalCoefficient(uint32_t did, const String& name);
+    SeasonalCoefficient(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getCurrentYear() const;
     float getEnergyThermal() const;
@@ -500,9 +569,11 @@ private:
     String _name;
     uint8_t _rawBytesPower[2]   = {0};
     uint8_t _rawBytesUnknown[2] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    ThermalPower(uint32_t did, const String& name);
+    ThermalPower(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     uint16_t getPower() const;
     uint16_t getUnknown() const;
@@ -518,9 +589,11 @@ private:
     String _name;
     uint8_t _rawBytesPower[2]   = {0};
     uint8_t _rawBytesUnknown[8] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    NominalPower(uint32_t did, const String& name);
+    NominalPower(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     uint16_t getPower() const;
     uint64_t getUnknown() const;
@@ -539,9 +612,11 @@ private:
     uint8_t _rawBytesSetpointIncreaseDHWTemperature[2] = {0};
     uint8_t _rawBytesSetpointIncreaseBufferTemperatureHeating[2] = {0};
     uint8_t _rawBytesSetpointDecreaseBufferTemperatureCooling[2] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    TemperatureOffsets(uint32_t did, const String& name);
+    TemperatureOffsets(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getSetpointIncreaseRoomTemperatureHeating() const;
     float getSetpointDecreaseRoomTemperatureCooling() const;
@@ -560,9 +635,11 @@ private:
     String _name;
     uint8_t _rawByteActual      =  0;
     uint8_t _rawBytesUnknown[4] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    PumpStatus(uint32_t did, const String& name);
+    PumpStatus(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     uint8_t getActual() const;
     uint32_t getUnknown() const;
@@ -578,9 +655,11 @@ private:
     String _name;
     uint8_t _rawBytesMinimum[2] = {0};
     uint8_t _rawBytesMaximum[2] = {0};
+    uint8_t _mask;
+    String _sep;
 
 public:
-    SetTemperature(uint32_t did, const String& name);
+    SetTemperature(uint32_t did, const String& name, uint8_t mask = 0xFE, const String& sep = " | ");
     void parse(const uint8_t* busBytes) override;
     float getMinimum() const;
     float getMaximum() const;

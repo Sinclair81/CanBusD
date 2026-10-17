@@ -57,7 +57,7 @@ MultiTempWithStatus      outsideTemperatureSensor(           274, "Außentempera
 Pump                     centralHeatingPump(                 381, "Heizungskreispumpe");
 MultiPressureWithStatus  waterPressureSensor(                318, "Wasserdrucksensor");
 Hysteresis               domesticHotWaterHysteresis(        1085, "Warmwasser Hysterese");
-CanInt8                  noiseReductionMode(                2634, "Flüsterbetrieb Modus", "", ""); 
+CanInt8                  noiseReductionMode(                2634, "Flüsterbetrieb Modus", "", "");
 
 // Here, we group all objects together as pointers in an array.
 const uint8_t NUM_OBJECTS = 7;
