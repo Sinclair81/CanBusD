@@ -172,7 +172,7 @@ uint8_t multiFrameBuffer[256] = {0};
 AsyncWebServer server(80);
 
 // HTML & CSS for a streamlined table view
-// HTML & CSS für eine strukturierte Tabellen-Ansicht mit echten Kategorien
+// HTML & CSS für eine strukturierte Tabellen-Ansicht mit echten Kategorien / right
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html>
@@ -188,9 +188,9 @@ const char index_html[] PROGMEM = R"rawliteral(
         th, td { padding: 10px 15px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #cc0000; color: white; font-weight: bold; font-size: 0.95rem; }
         tr:hover:not(.category-row) { background-color: #f9f9f9; }
-        td:first-child { font-family: monospace; font-weight: bold; color: #777; font-size: 1.05rem; width: 30px; }
-        td:nth-child(2) { font-weight: bold; color: #222; font-size: 1.05rem; }
-        .val { font-family: monospace; font-weight: bold; color: #008800; font-size: 1.05rem; text-align: right; }
+        td:first-child { font-family: monospace; font-weight: bold; color: #777; font-size: 1.05rem; }
+        td:nth-child(2) { font-weight: bold; color: #222; font-size: 1.05rem; text-align: right; }
+        .val { font-family: monospace; font-weight: bold; color: #008800; font-size: 1.05rem; text-align: left; }
         
         .empty-row { height: 12px }
         .empty-row td { padding: 0px 0px; }
@@ -223,10 +223,21 @@ const char index_html[] PROGMEM = R"rawliteral(
                             tbody.appendChild(e_row);
 
                             row.className = 'category-row';
+                            /*
                             let tdCat = document.createElement('td');
                             tdCat.colSpan = 3;
                             tdCat.innerText = item.name;
                             row.appendChild(tdCat);
+                            */
+                            
+                            let tdDid = document.createElement('td');
+                            let tdName = document.createElement('td');
+                            let tdVal = document.createElement('td');
+                            tdVal.innerText = item.name;
+                            row.appendChild(tdDid);
+                            row.appendChild(tdName);
+                            row.appendChild(tdVal);
+                            
                         } else {
                             let tdDid = document.createElement('td');
                             tdDid.innerText = item.did;
@@ -265,8 +276,8 @@ const char index_html[] PROGMEM = R"rawliteral(
             <thead>
                 <tr>
                     <th>DID</th>
-                    <th>Name</th>
-                    <th style="text-align: right;">Current value</th>
+                    <th style="text-align: right";>Name</th>
+                    <th style="text-align: left;">Current value</th>
                 </tr>
             </thead>
             <tbody id="data-table">
