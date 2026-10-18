@@ -14,7 +14,8 @@ The collection of DIDs in the file `known_dids.h` is a blend of data from a list
 ## Hardware  
 ### [ESP32-S3-RS485-CAN](https://www.waveshare.com/esp32-s3-rs485-can.htm?srsltid=AU7gw4UBb7m5bKDP9epj_9h0QPumj4ANPL_AVdqtJ7dzOMvFQwdwILDE)  
 Industrial ESP32-S3 Control Board With RS485 And CAN Communication Interfaces, Supports Wi-Fi / Bluetooth, Built-in Multiple Protection Circuits  
-
+<img src="Images/ESP32-S3-RS485-CAN_1.png" alt="ESP32-S3-RS485-CAN_1" width="250">
+<img src="Images/ESP32-S3-RS485-CAN_2.png" alt="ESP32-S3-RS485-CAN_2" height="250">
 
 ## Software
 ### Viessmann UDS Commander
