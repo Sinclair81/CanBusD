@@ -39,9 +39,9 @@ MultiTempWithStatus domesticHotWaterReturnTemperaturTankLoadSystem(3034, "Warmwa
 MultiTempWithStatus domesticHotWaterFlowTemperaturTankLoadSystem(  3035, "Warmwasser Vorlauftemperatur Speicherladesystem");    // everything 0.0
 MultiTempWithStatus domesticHotWaterBufferTopTemperatureSensor(    3234, "Warmwasser Pufferspeicher Temperatursensor oben");
 
-PressureWithStatus waterPressureSensor(           318, "Wasserdrucksensor");
-PressureWithStatus compressorInletPressureSensor( 322, "Kompressor Einlassdrucksensor");
-PressureWithStatus compressorOutletPressureSensor(325, "Kompressor Auslassdrucksensor");
+MultiPressureWithStatus waterPressureSensor(           318, "Wasserdrucksensor");
+MultiPressureWithStatus compressorInletPressureSensor( 322, "Kompressor Einlassdrucksensor"); // only actual; everything else 0.0
+MultiPressureWithStatus compressorOutletPressureSensor(325, "Kompressor Auslassdrucksensor"); // only actual; everything else 0.0
 
 Pump centralHeatingPump(            381, "Heizungskreispumpe");
 Pump domesticHotWaterShiftLoadPump(1290, "Warmwasser Schichtladepumpe");

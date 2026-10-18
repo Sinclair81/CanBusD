@@ -39,9 +39,9 @@ MultiTempWithStatus domesticHotWaterReturnTemperaturTankLoadSystem(3034, "Domest
 MultiTempWithStatus domesticHotWaterFlowTemperaturTankLoadSystem(  3035, "DomesticHotWaterFlowTemperaturTankLoadSystem");   // everything 0.0
 MultiTempWithStatus domesticHotWaterBufferTopTemperatureSensor(    3234, "DomesticHotWaterBufferTopTemperatureSensor");
 
-PressureWithStatus waterPressureSensor(           318, "WaterPressureSensor");
-PressureWithStatus compressorInletPressureSensor( 322, "CompressorInletPressureSensor");
-PressureWithStatus compressorOutletPressureSensor(325, "CompressorOutletPressureSensor");
+MultiPressureWithStatus waterPressureSensor(           318, "WaterPressureSensor");
+MultiPressureWithStatus compressorInletPressureSensor( 322, "CompressorInletPressureSensor");  // only actual; everything else 0.0
+MultiPressureWithStatus compressorOutletPressureSensor(325, "CompressorOutletPressureSensor"); // only actual; everything else 0.0
 
 Pump centralHeatingPump(            381, "CentralHeatingPump");
 Pump domesticHotWaterShiftLoadPump(1290, "DomesticHotWaterShiftLoadPump");

@@ -74,7 +74,7 @@ CanObject* canObjects[NUM_OBJECTS] = {
 unsigned long lastQueryTime = 0;
 const unsigned long queryInterval = 60000;
 unsigned long lastStepTime = 0;
-const unsigned long stepInterval = 150;
+const unsigned long stepInterval = 300;
 uint8_t currentQueryStep = 0;
 
 bool isWaitingForConsecutive = false;
@@ -315,9 +315,6 @@ void setup() {
     twai_driver_install(&g_config, &t_config, &f_config); 
     twai_start();
 
-    // Initialize the timestamp so that the query begins immediately upon startup
-    lastQueryTime = millis() - queryInterval; 
-
     // Set up web server endpoints
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){ 
         request->send(200, "text/html; charset=UTF-8", String(index_html)); 
@@ -344,6 +341,10 @@ void setup() {
     server.begin();
 
     setupWatchdog();
+
+    // Initialize the timestamp so that the query begins immediately upon startup
+    lastQueryTime = millis();
+    lastStepTime = millis() - stepInterval;
 }
 
 void loop() {
