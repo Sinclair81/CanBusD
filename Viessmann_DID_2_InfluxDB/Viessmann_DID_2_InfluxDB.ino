@@ -53,8 +53,9 @@ const char* password = SECRET_PASSWORD;
 #define CAN_REQUEST_ID  0x680
 #define CAN_RESPONSE_ID 0x690
 
-// Registered variables for cyclical polling
-ListDummy dummy1(                                                            999901, "🌡️ Temperaturen");
+//                                                                                                                       Display the 1st to 5th part of the string, or not. 
+// Registered variables for cyclical polling                                                                             |||||  Remove the beginning of the string up to the first ":".
+ListDummy dummy1(                                                            999901, "🌡️ Temperaturen"); //              |||||  |   The new substring separator.
 MultiTempWithStatus outsideTemperatureSensor(                                   274, "Außentemperatur",                0b11100001, "; ");
 MultiTempWithStatus flowTemperatureSensor(                                      268, "Vorlauftemperatur",              0b11100001, "; ");
 MultiTempWithStatus returnTemperatureSensor(                                    269, "Rücklauftemperatur",             0b11100001, "; ");
